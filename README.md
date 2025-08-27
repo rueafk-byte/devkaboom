@@ -1,12 +1,11 @@
 # 🎮 Kaboom Web3 Game
 
-A modern Web3 blockchain game built with real-time multiplayer capabilities, token rewards, and worldwide optimization.
+A modern Web3 blockchain game built with real-time multiplayer capabilities and token rewards.
 
 ## 🌟 Features
 
 - **Web3 Integration** - Solana blockchain with real token rewards
 - **Real-time Multiplayer** - WebSocket communication for live gameplay
-- **Global Optimization** - CDN integration and performance monitoring
 - **Modern UI** - Dynamic components with responsive design
 - **PWA Support** - Offline capabilities and app-like experience
 - **Production Ready** - Scalable backend with monitoring
@@ -38,123 +37,6 @@ npm run dev
 
 # Open http://localhost:3000
 ```
-
-## 🌍 Deployment Options
-
-### 1. **Vercel Deployment** (Recommended for Frontend)
-
-#### Automatic Deployment
-1. Fork this repository to your GitHub account
-2. Connect your GitHub account to [Vercel](https://vercel.com)
-3. Import the repository in Vercel
-4. Add environment variables in Vercel dashboard
-5. Deploy automatically on every push to main branch
-
-#### Manual Deployment
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Login to Vercel
-vercel login
-
-# Deploy
-vercel --prod
-```
-
-#### Environment Variables for Vercel
-Add these in your Vercel project settings:
-```
-BACKEND_URL=https://your-backend-url.com
-NODE_ENV=production
-```
-
-### 2. **Koyeb Deployment** (Recommended for Backend)
-
-#### Using Koyeb CLI
-```bash
-# Install Koyeb CLI
-curl -fsSL https://cli.koyeb.com/install.sh | bash
-
-# Login to Koyeb
-koyeb login
-
-# Deploy using koyeb.yaml
-koyeb app init kaboom-web3-game --docker ./koyeb.yaml
-```
-
-#### Using Koyeb Dashboard
-1. Go to [Koyeb Dashboard](https://app.koyeb.com)
-2. Click "Create App"
-3. Connect your GitHub repository
-4. Select the repository and main branch
-5. Configure environment variables
-6. Deploy
-
-#### Environment Variables for Koyeb
-```bash
-# Database
-DATABASE_URL=postgresql://user:password@host:port/database
-REDIS_URL=redis://user:password@host:port
-
-# Security
-JWT_SECRET=your-super-secret-jwt-key-here
-
-# Solana Configuration
-SOLANA_NETWORK=mainnet-beta
-SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
-BOOM_TOKEN_ADDRESS=your_boom_token_address
-PIRATE_TOKEN_ADDRESS=your_pirate_token_address
-ADMIRAL_TOKEN_ADDRESS=your_admiral_token_address
-PLAYER_REGISTRY_ADDRESS=your_player_registry_address
-
-# Admin Configuration
-ADMIN_WALLETS=wallet1,wallet2,wallet3
-
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-```
-
-### 3. **Netlify Deployment**
-
-#### Using Netlify CLI
-```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Login to Netlify
-netlify login
-
-# Deploy
-netlify deploy --prod
-```
-
-#### Using Netlify Dashboard
-1. Go to [Netlify Dashboard](https://app.netlify.com)
-2. Click "New site from Git"
-3. Connect your GitHub repository
-4. Configure build settings:
-   - Build command: `npm run build`
-   - Publish directory: `.`
-5. Add environment variables
-6. Deploy
-
-### 4. **GitHub Pages Deployment**
-
-#### Using GitHub Actions
-The repository includes a GitHub Actions workflow that automatically deploys to multiple platforms on every push to main branch.
-
-1. Fork this repository
-2. Add secrets to your GitHub repository:
-   - `VERCEL_TOKEN`
-   - `VERCEL_ORG_ID`
-   - `VERCEL_PROJECT_ID`
-   - `KOYEB_TOKEN`
-   - `NETLIFY_AUTH_TOKEN`
-   - `NETLIFY_SITE_ID`
-
-3. Push to main branch to trigger deployment
 
 ## 🔧 Environment Variables
 
@@ -210,10 +92,6 @@ kaboom-web3-game/
 ├── 📄 game.js                       # Core game logic
 ├── 📄 server.js                     # Backend server
 ├── 📄 package.json                  # Dependencies
-├── 📄 vercel.json                   # Vercel configuration
-├── 📄 koyeb.yaml                    # Koyeb configuration
-├── 📄 netlify.toml                  # Netlify configuration
-├── 📄 .github/workflows/deploy.yml  # GitHub Actions
 ├── 📁 web3/                         # Web3 integration
 ├── 📁 config/                       # Configuration files
 ├── 📁 middleware/                   # Express middleware
@@ -239,7 +117,6 @@ kaboom-web3-game/
 - **Live Chat** (coming soon)
 
 ### Performance
-- **CDN Optimization** for global players
 - **Image Optimization** with lazy loading
 - **Core Web Vitals** monitoring
 - **Offline Support** with Service Worker
@@ -265,24 +142,6 @@ kaboom-web3-game/
 - **Game Metrics**: FPS, latency, errors
 - **Business Metrics**: Players, sessions, rewards
 
-## 🚀 Production Deployment Checklist
-
-### Before Deployment
-- [ ] Set up environment variables
-- [ ] Configure database and Redis
-- [ ] Set up Solana smart contracts
-- [ ] Configure domain and SSL
-- [ ] Set up monitoring and logging
-- [ ] Test all features locally
-
-### After Deployment
-- [ ] Verify health checks
-- [ ] Test Web3 integration
-- [ ] Monitor performance metrics
-- [ ] Set up alerts and notifications
-- [ ] Configure backup strategies
-- [ ] Document deployment process
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -306,9 +165,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Solana Foundation for blockchain infrastructure
 - Socket.IO for real-time communication
-- Vercel, Koyeb, and Netlify for hosting platforms
 - All contributors and players
 
 ---
 
-**Ready to play? Deploy and start gaming! 🎮🚀**
+**Ready to play? Start the game locally! 🎮🚀**

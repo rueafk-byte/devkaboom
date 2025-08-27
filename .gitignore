@@ -16,9 +16,6 @@ yarn.lock
 # Build outputs
 dist/
 build/
-.next/
-out/
-.vercel/
 
 # Logs
 logs/
@@ -69,21 +66,6 @@ jspm_packages/
 .cache
 .parcel-cache
 
-# Next.js build output
-.next
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-public
-
-# Storybook build outputs
-.out
-.storybook-out
-
 # Temporary folders
 tmp/
 temp/
@@ -116,9 +98,6 @@ player_data.db
 *.crt
 *.csr
 
-# Docker
-.dockerignore
-
 # Backup files
 *.backup
 *.bak
@@ -132,10 +111,6 @@ test-*.html
 wallet-keys/
 private-keys/
 *.wallet
-
-# Monitoring
-prometheus/
-grafana/
 
 # Local development
 .local/
