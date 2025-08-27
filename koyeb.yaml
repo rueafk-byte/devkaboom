@@ -1,0 +1,117 @@
+name: kaboom-web3-game
+services:
+  - name: kaboom-backend
+    type: web
+    env: node
+    git:
+      repository: YOUR_GITHUB_REPO_URL
+      branch: main
+    ports:
+      - port: 3000
+        protocol: http
+    routes:
+      - path: /
+        protocol: http
+    env:
+      - name: NODE_ENV
+        value: production
+      - name: PORT
+        value: 3000
+      - name: DATABASE_URL
+        secret: database-url
+      - name: REDIS_URL
+        secret: redis-url
+      - name: JWT_SECRET
+        secret: jwt-secret
+      - name: SOLANA_NETWORK
+        value: mainnet-beta
+      - name: SOLANA_RPC_URL
+        secret: solana-rpc-url
+      - name: BOOM_TOKEN_ADDRESS
+        secret: boom-token-address
+      - name: PIRATE_TOKEN_ADDRESS
+        secret: pirate-token-address
+      - name: ADMIRAL_TOKEN_ADDRESS
+        secret: admiral-token-address
+      - name: PLAYER_REGISTRY_ADDRESS
+        secret: player-registry-address
+      - name: ADMIN_WALLETS
+        secret: admin-wallets
+      - name: CORS_ORIGIN
+        value: "*"
+      - name: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - name: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+    healthcheck:
+      path: /health
+      port: 3000
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    scaling:
+      min: 1
+      max: 10
+      target_cpu_utilization: 70
+    resources:
+      cpu: 0.5
+      memory: 1Gi
+    build:
+      builder: node
+      build_command: npm install
+      start_command: npm start
+
+  - name: kaboom-frontend
+    type: web
+    env: static
+    git:
+      repository: YOUR_GITHUB_REPO_URL
+      branch: main
+    routes:
+      - path: /
+        protocol: http
+    env:
+      - name: BACKEND_URL
+        value: https://kaboom-backend-YOUR_APP_NAME.koyeb.app
+    build:
+      builder: static
+      build_command: echo "Static files ready"
+      start_command: npx serve -s . -l 3000
+    resources:
+      cpu: 0.1
+      memory: 256Mi
+
+databases:
+  - name: kaboom-postgres
+    type: postgresql
+    version: "14"
+    plan: starter
+    regions:
+      - fra
+
+  - name: kaboom-redis
+    type: redis
+    version: "7"
+    plan: starter
+    regions:
+      - fra
+
+secrets:
+  - name: database-url
+    value: postgresql://user:password@host:port/database
+  - name: redis-url
+    value: redis://user:password@host:port
+  - name: jwt-secret
+    value: your-super-secret-jwt-key-here
+  - name: solana-rpc-url
+    value: https://api.mainnet-beta.solana.com
+  - name: boom-token-address
+    value: YOUR_BOOM_TOKEN_ADDRESS
+  - name: pirate-token-address
+    value: YOUR_PIRATE_TOKEN_ADDRESS
+  - name: admiral-token-address
+    value: YOUR_ADMIRAL_TOKEN_ADDRESS
+  - name: player-registry-address
+    value: YOUR_PLAYER_REGISTRY_ADDRESS
+  - name: admin-wallets
+    value: "wallet1,wallet2,wallet3"
