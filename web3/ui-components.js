@@ -498,8 +498,9 @@ class GameUI {
         const controls = this.createElement('div', 'game-controls');
         controls.innerHTML = `
             <button class="control-btn" id="connect-wallet">Connect Wallet</button>
-            <button class="control-btn" id="start-game">Start Game</button>
+            <button class="control-btn" id="start-game">Play (PVE)</button>
             <button class="control-btn" id="pause-game">Pause</button>
+            <button class="control-btn" id="pvp-soon" disabled>PVP (coming soon)</button>
             <button class="control-btn primary" id="settings">Settings</button>
         `;
         
@@ -728,13 +729,24 @@ class GameUI {
     }
 
     async startGame() {
-        if (!window.gameIntegration || !window.gameIntegration.isWalletConnected()) {
-            alert('Please connect your wallet first!');
-            return;
-        }
-        
         try {
-            await window.gameIntegration.startGameSession(1, 'normal', 'standard');
+            // Require wallet connect first
+            if (!window.gameIntegration || !window.gameIntegration.isWalletConnected()) {
+                alert('Please connect your wallet first!');
+                return;
+            }
+
+            // Create the game instance only when the player presses Play (PVE)
+            if (typeof PirateBombGame !== 'undefined') {
+                if (!window.__kaboomGameInstance) {
+                    window.__kaboomGameInstance = new PirateBombGame();
+                }
+            }
+
+            // Start session (non-blocking)
+            if (window.gameIntegration && window.gameIntegration.startGameSession) {
+                window.gameIntegration.startGameSession(1, 'normal', 'standard').catch(() => {});
+            }
         } catch (error) {
             console.error('Failed to start game:', error);
         }

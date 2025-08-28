@@ -344,27 +344,17 @@
                     if (window.performanceOptimizer) {
                         window.performanceOptimizer.init();
                     }
-                }, 1000);
+                    
+                    // Show the UI: hide loading screen and prompt wallet connect
+                    const loadingScreen = document.getElementById('loadingScreen');
+                    if (loadingScreen) {
+                        loadingScreen.style.display = 'none';
+                    }
+                    console.log('✅ UI ready. Prompting wallet connection.');
+                }, 600);
                 
-                // Start the game immediately
-                if (typeof PirateBombGame !== 'undefined') {
-                    console.log('✅ Creating game instance...');
-                    const game = new PirateBombGame();
-                    console.log('✅ Game instance created successfully');
-                    
-                    // Hide loading screen after game starts
-                    setTimeout(() => {
-                        const loadingScreen = document.getElementById('loadingScreen');
-                        if (loadingScreen) {
-                            loadingScreen.style.display = 'none';
-                            console.log('✅ Loading screen hidden');
-                        }
-                    }, 3000);
-                    
-                } else {
-                    console.error('❌ PirateBombGame class not found');
-                    loadingText.textContent = 'Error: Game class not found. Please refresh the page.';
-                }
+                // Do NOT auto-start the game. The user must connect wallet then press Play (PVE)
+                // The game instance will be created by UI after wallet connection
                 
                 // Report performance metrics
                 setTimeout(() => {
