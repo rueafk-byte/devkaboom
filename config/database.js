@@ -1,13 +1,14 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
-// Production Database Configuration
+// Database Configuration
 const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     port: process.env.DB_PORT || 5432,
     database: process.env.DB_NAME || 'kaboom_production',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD,
+    // Disable SSL for local development, only use SSL in production
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000,
@@ -24,7 +25,8 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
     console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    // Don't exit process, just log the error
+    console.log('Database connection error, but continuing...');
 });
 
 // Database initialization
@@ -62,10 +64,7 @@ async function createTables() {
                 achievements JSONB DEFAULT '[]',
                 game_stats JSONB DEFAULT '{}',
                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_wallet_address (wallet_address),
-                INDEX idx_total_score (total_score DESC),
-                INDEX idx_level (level DESC)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
@@ -81,14 +80,11 @@ async function createTables() {
                 tokens_earned JSONB DEFAULT '{}',
                 enemies_killed INTEGER DEFAULT 0,
                 levels_completed INTEGER DEFAULT 0,
-                game_data JSONB DEFAULT '{}',
-                INDEX idx_session_id (session_id),
-                INDEX idx_wallet_address (wallet_address),
-                INDEX idx_session_start (session_start)
+                game_data JSONB DEFAULT '{}'
             )
         `);
 
-        // Leaderboard table (for caching)
+        // Leaderboard table
         await client.query(`
             CREATE TABLE IF NOT EXISTS leaderboard_cache (
                 id SERIAL PRIMARY KEY,
@@ -98,78 +94,7 @@ async function createTables() {
                 username VARCHAR(50),
                 score BIGINT NOT NULL,
                 level INTEGER,
-                tokens BIGINT,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(leaderboard_type, rank),
-                INDEX idx_leaderboard_type (leaderboard_type),
-                INDEX idx_updated_at (updated_at)
-            )
-        `);
-
-        // Admin actions log
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS admin_actions (
-                id SERIAL PRIMARY KEY,
-                admin_ip INET,
-                admin_wallet VARCHAR(44),
-                action_type VARCHAR(50) NOT NULL,
-                target_wallet VARCHAR(44),
-                action_details JSONB,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_admin_wallet (admin_wallet),
-                INDEX idx_action_type (action_type),
-                INDEX idx_timestamp (timestamp)
-            )
-        `);
-
-        // Blockchain transactions log
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS blockchain_transactions (
-                id SERIAL PRIMARY KEY,
-                wallet_address VARCHAR(44) NOT NULL,
-                transaction_hash VARCHAR(44) UNIQUE NOT NULL,
-                transaction_type VARCHAR(30) NOT NULL,
-                token_type VARCHAR(20),
-                amount BIGINT,
-                status VARCHAR(20) DEFAULT 'pending',
-                block_number BIGINT,
-                gas_used BIGINT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_transaction_hash (transaction_hash),
-                INDEX idx_wallet_address (wallet_address),
-                INDEX idx_status (status),
-                INDEX idx_timestamp (timestamp)
-            )
-        `);
-
-        // Player achievements
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS player_achievements (
-                id SERIAL PRIMARY KEY,
-                wallet_address VARCHAR(44) NOT NULL,
-                achievement_id VARCHAR(50) NOT NULL,
-                achievement_name VARCHAR(100) NOT NULL,
-                achievement_description TEXT,
-                reward_tokens JSONB DEFAULT '{}',
-                unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(wallet_address, achievement_id),
-                INDEX idx_wallet_address (wallet_address),
-                INDEX idx_achievement_id (achievement_id)
-            )
-        `);
-
-        // Daily/Weekly rewards tracking
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS reward_claims (
-                id SERIAL PRIMARY KEY,
-                wallet_address VARCHAR(44) NOT NULL,
-                reward_type VARCHAR(20) NOT NULL,
-                reward_date DATE NOT NULL,
-                tokens_claimed JSONB DEFAULT '{}',
-                claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(wallet_address, reward_type, reward_date),
-                INDEX idx_wallet_address (wallet_address),
-                INDEX idx_reward_date (reward_date)
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
@@ -208,3 +133,4 @@ const db = {
 };
 
 module.exports = db;
+

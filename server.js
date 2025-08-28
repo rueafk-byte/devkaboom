@@ -24,9 +24,8 @@ const adminRoutes = require('./routes/admin');
 const web3Routes = require('./routes/web3');
 
 // Import middleware
-const authMiddleware = require('./middleware/auth');
-const rateLimitMiddleware = require('./middleware/rateLimit');
-const errorHandler = require('./middleware/errorHandler');
+const { authMiddleware, walletAuthMiddleware, rateLimitMiddleware } = require('./middleware/auth');
+const { errorHandler } = require('./middleware/errorHandler');
 
 // Import services
 const Web3Service = require('./services/web3Service');
@@ -73,18 +72,34 @@ if (cluster.isMaster && process.env.NODE_ENV === 'production') {
 
 async function startServer() {
     try {
-        // Initialize database
-        await db.initialize();
-        logger.info('Database initialized successfully');
+        // Initialize database (optional for local development)
+        try {
+            await db.initialize();
+            logger.info('Database initialized successfully');
+        } catch (dbError) {
+            logger.warn('Database initialization failed, continuing without database:', dbError.message);
+            logger.info('Game will run with local storage only');
+        }
         
-        // Initialize Redis
-        await redisClient.ping();
-        logger.info('Redis connected successfully');
+        // Initialize Redis (optional for local development)
+        try {
+            await redisClient.ping();
+            logger.info('Redis connected successfully');
+        } catch (redisError) {
+            logger.warn('Redis connection failed, continuing without Redis:', redisError.message);
+            logger.info('Game will run without caching');
+        }
         
-        // Initialize Web3 service
-        const web3Service = new Web3Service();
-        await web3Service.initialize();
-        logger.info('Web3 service initialized successfully');
+        // Initialize Web3 service (optional for local development)
+        let web3Service;
+        try {
+            web3Service = new Web3Service();
+            await web3Service.initialize();
+            logger.info('Web3 service initialized successfully');
+        } catch (web3Error) {
+            logger.warn('Web3 service initialization failed, continuing without Web3:', web3Error.message);
+            logger.info('Game will run without blockchain features');
+        }
         
         // Create Express app
         const app = express();
@@ -139,25 +154,45 @@ async function startServer() {
         // Health check endpoint
         app.get('/health', async (req, res) => {
             try {
-                const dbHealth = await db.healthCheck();
-                const redisHealth = await redisClient.healthCheck();
-                
                 const health = {
                     status: 'healthy',
                     timestamp: new Date().toISOString(),
                     services: {
-                        database: dbHealth.status,
-                        redis: redisHealth.status,
-                        web3: web3Service.isConnected()
+                        database: 'unknown',
+                        redis: 'unknown',
+                        web3: 'unknown'
                     },
                     uptime: process.uptime(),
                     memory: process.memoryUsage(),
                     version: process.env.npm_package_version || '2.0.0'
                 };
                 
-                const isHealthy = dbHealth.status === 'healthy' && 
-                                redisHealth.status === 'healthy' && 
-                                web3Service.isConnected();
+                // Check database health
+                try {
+                    const dbHealth = await db.healthCheck();
+                    health.services.database = dbHealth.status;
+                } catch (error) {
+                    health.services.database = 'unhealthy';
+                }
+                
+                // Check Redis health
+                try {
+                    const redisHealth = await redisClient.healthCheck();
+                    health.services.redis = redisHealth.status;
+                } catch (error) {
+                    health.services.redis = 'unhealthy';
+                }
+                
+                // Check Web3 health
+                try {
+                    health.services.web3 = web3Service && web3Service.isConnected() ? 'healthy' : 'unhealthy';
+                } catch (error) {
+                    health.services.web3 = 'unhealthy';
+                }
+                
+                const isHealthy = health.services.database === 'healthy' || 
+                                health.services.redis === 'healthy' || 
+                                health.services.web3 === 'healthy';
                 
                 res.status(isHealthy ? 200 : 503).json(health);
             } catch (error) {

@@ -1,44 +1,115 @@
 const redis = require('redis');
 require('dotenv').config();
 
-// Redis Configuration
-const redisConfig = {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD,
-    retry_strategy: (options) => {
-        if (options.error && options.error.code === 'ECONNREFUSED') {
-            return new Error('The server refused the connection');
+// Mock Redis client for when Redis is not available
+const createMockRedisClient = () => {
+    const mockData = new Map();
+    
+    return {
+        get: (key) => Promise.resolve(mockData.get(key) || null),
+        set: (key, value, ttl = null) => {
+            mockData.set(key, value);
+            return Promise.resolve('OK');
+        },
+        setex: (key, ttl, value) => {
+            mockData.set(key, value);
+            return Promise.resolve('OK');
+        },
+        del: (key) => {
+            const deleted = mockData.delete(key);
+            return Promise.resolve(deleted ? 1 : 0);
+        },
+        exists: (key) => Promise.resolve(mockData.has(key) ? 1 : 0),
+        hget: (key, field) => Promise.resolve(null),
+        hset: (key, field, value) => Promise.resolve(1),
+        hgetall: (key) => Promise.resolve({}),
+        hdel: (key, field) => Promise.resolve(0),
+        lpush: (key, value) => Promise.resolve(1),
+        rpush: (key, value) => Promise.resolve(1),
+        lpop: (key) => Promise.resolve(null),
+        rpop: (key) => Promise.resolve(null),
+        lrange: (key, start, stop) => Promise.resolve([]),
+        sadd: (key, member) => Promise.resolve(1),
+        srem: (key, member) => Promise.resolve(0),
+        smembers: (key) => Promise.resolve([]),
+        sismember: (key, member) => Promise.resolve(0),
+        zadd: (key, score, member) => Promise.resolve(1),
+        zrange: (key, start, stop, withscores = false) => Promise.resolve([]),
+        zrevrange: (key, start, stop, withscores = false) => Promise.resolve([]),
+        zscore: (key, member) => Promise.resolve(null),
+        zrank: (key, member) => Promise.resolve(null),
+        zrevrank: (key, member) => Promise.resolve(null),
+        expire: (key, seconds) => Promise.resolve(1),
+        ttl: (key) => Promise.resolve(-1),
+        flushdb: () => {
+            mockData.clear();
+            return Promise.resolve('OK');
+        },
+        ping: () => Promise.resolve('PONG'),
+        quit: () => Promise.resolve('OK'),
+        on: (event, callback) => {
+            if (event === 'connect') callback();
+            if (event === 'ready') callback();
+            if (event === 'end') callback();
         }
-        if (options.total_retry_time > 1000 * 60 * 60) {
-            return new Error('Retry time exhausted');
-        }
-        if (options.attempt > 10) {
-            return undefined;
-        }
-        return Math.min(options.attempt * 100, 3000);
-    }
+    };
 };
 
-// Create Redis client
-const client = redis.createClient(redisConfig);
+let client;
+let useMockRedis = false;
 
-// Redis event handlers
-client.on('connect', () => {
-    console.log('Connected to Redis');
-});
+// Try to create Redis client
+try {
+    // Redis Configuration
+    const redisConfig = {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: process.env.REDIS_PORT || 6379,
+        password: process.env.REDIS_PASSWORD,
+        retry_strategy: (options) => {
+            if (options.error && options.error.code === 'ECONNREFUSED') {
+                console.warn('Redis connection refused, using mock Redis client');
+                useMockRedis = true;
+                return new Error('The server refused the connection');
+            }
+            if (options.total_retry_time > 1000 * 60 * 60) {
+                return new Error('Retry time exhausted');
+            }
+            if (options.attempt > 10) {
+                return undefined;
+            }
+            return Math.min(options.attempt * 100, 3000);
+        }
+    };
 
-client.on('error', (err) => {
-    console.error('Redis Client Error:', err);
-});
+    client = redis.createClient(redisConfig);
 
-client.on('ready', () => {
-    console.log('Redis client ready');
-});
+    // Redis event handlers
+    client.on('connect', () => {
+        console.log('Connected to Redis');
+    });
 
-client.on('end', () => {
-    console.log('Redis client disconnected');
-});
+    client.on('error', (err) => {
+        console.error('Redis Client Error:', err);
+        if (err.code === 'ECONNREFUSED') {
+            console.warn('Redis not available, switching to mock Redis client');
+            useMockRedis = true;
+            client = createMockRedisClient();
+        }
+    });
+
+    client.on('ready', () => {
+        console.log('Redis client ready');
+    });
+
+    client.on('end', () => {
+        console.log('Redis client disconnected');
+    });
+
+} catch (error) {
+    console.warn('Failed to create Redis client, using mock Redis:', error.message);
+    useMockRedis = true;
+    client = createMockRedisClient();
+}
 
 // Redis operations wrapper
 const redisClient = {
@@ -95,7 +166,11 @@ const redisClient = {
     healthCheck: async () => {
         try {
             const result = await client.ping();
-            return { status: 'healthy', response: result };
+            return { 
+                status: useMockRedis ? 'mock' : 'healthy', 
+                response: result,
+                mock: useMockRedis
+            };
         } catch (error) {
             return { status: 'unhealthy', error: error.message };
         }

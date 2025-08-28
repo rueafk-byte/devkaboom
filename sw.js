@@ -198,7 +198,7 @@ async function handleDynamicRequest(request) {
         const cachedResponse = await caches.match(request);
         
         // Fetch from network in background
-        const networkPromise = fetch(request).then(networkResponse => {
+        const networkPromise = fetch(request).then(async networkResponse => {
             if (networkResponse.ok) {
                 const cache = await caches.open(DYNAMIC_CACHE);
                 cache.put(request, networkResponse.clone());
@@ -249,7 +249,7 @@ self.addEventListener('sync', event => {
     if (event.tag === 'background-sync') {
         event.waitUntil(performBackgroundSync());
     }
-}
+});
 
 // Perform background sync
 async function performBackgroundSync() {
