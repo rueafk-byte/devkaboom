@@ -170,8 +170,8 @@ class AssetLoader {
 			if (onProgress) onProgress(loaded, total);
 		};
 
-		// Enhanced loading - load all assets with timeout
-		const totalSteps = 50; // Increased count for more sprites
+		// Simplified loading - load only essential assets
+		const totalSteps = 20; // Reduced count for faster loading
 		
 		try {
 			// Load only essential player animations with timeout
@@ -186,7 +186,7 @@ class AssetLoader {
 						console.log(`Loading player animation: ${anim} with ${playerManifest[anim]} frames from ${playerManifest._base}/${anim}`);
 						const frames = await Promise.race([
 							this.loadFrames(`${playerManifest._base}/${anim}`, playerManifest[anim]),
-							new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+							new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000))
 						]);
 						console.log(`Successfully loaded ${anim}: ${frames.length} frames`);
 						this.assets.player[anim] = frames;
@@ -215,7 +215,7 @@ class AssetLoader {
 							try {
 								const frames = await Promise.race([
 									this.loadFrames(`${enemiesManifest[enemyName].base}/${anim}`, enemiesManifest[enemyName][anim]),
-									new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 3000))
+									new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000))
 								]);
 				this.assets.enemies[enemyName][anim] = frames;
 								console.log(`Loaded ${enemyName} ${anim}: ${frames.length} frames`);
@@ -480,7 +480,7 @@ class PirateBombGame {
 		this.ctx.imageSmoothingQuality = 'low';
 
 		this.assets = null; // filled after loading
-		this.soundManager = soundManager; // reference to global sound manager
+		this.soundManager = soundManager || null; // reference to global sound manager (optional)
 
 		this.gameState = {
 			currentScore: 0,
@@ -5760,7 +5760,20 @@ window.startGame = async function() {
 	
 		// Initialize game components
 		console.log('Creating SoundManager...');
-		soundManager = new SoundManager();
+		try {
+			soundManager = new SoundManager();
+		} catch (error) {
+			console.warn('Failed to create SoundManager, using fallback:', error);
+			// Create a simple fallback sound manager
+			soundManager = {
+				startBackgroundMusic: () => console.log('🎵 Fallback: Background music started'),
+				play: (sound) => console.log(`🎵 Fallback: Playing ${sound}`),
+				toggle: () => console.log('🎵 Fallback: Toggle sound'),
+				toggleMusic: () => console.log('🎵 Fallback: Toggle music'),
+				musicEnabled: true,
+				audioElements: []
+			};
+		}
 		
 		console.log('Creating MobileControls...');
 		mobileControls = new MobileControls();

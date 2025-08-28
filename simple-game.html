@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Kaboom Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #gameCanvas {
+            border: 2px solid #fff;
+            display: block;
+            margin: 20px auto;
+        }
+        #status {
+            text-align: center;
+            margin: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">Initializing...</div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <script>
+        // Simple game test without complex dependencies
+        window.addEventListener('load', () => {
+            const status = document.getElementById('status');
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            try {
+                status.textContent = 'Testing canvas...';
+                
+                // Test basic canvas functionality
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fillRect(0, 0, 800, 600);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '48px Arial';
+                ctx.fillText('Kaboom Game', 200, 300);
+                
+                ctx.font = '24px Arial';
+                ctx.fillText('Canvas is working!', 250, 350);
+                
+                status.textContent = 'Canvas test successful!';
+                
+                // Test if we can load the game script
+                const script = document.createElement('script');
+                script.src = 'game.js';
+                script.onload = () => {
+                    status.textContent = 'Game script loaded successfully!';
+                    
+                    // Test if PirateBombGame class exists
+                    if (typeof PirateBombGame !== 'undefined') {
+                        status.textContent = 'PirateBombGame class found!';
+                        
+                        // Try to create a minimal game instance
+                        try {
+                            // Create a simple fallback sound manager
+                            window.soundManager = {
+                                startBackgroundMusic: () => console.log('🎵 Fallback music'),
+                                play: (sound) => console.log(`🎵 ${sound}`),
+                                toggle: () => console.log('🎵 Toggle'),
+                                toggleMusic: () => console.log('🎵 Toggle music'),
+                                musicEnabled: true,
+                                audioElements: []
+                            };
+                            
+                            const game = new PirateBombGame();
+                            status.textContent = 'Game created successfully!';
+                            
+                        } catch (error) {
+                            status.textContent = 'Game creation failed: ' + error.message;
+                            console.error('Game creation error:', error);
+                        }
+                    } else {
+                        status.textContent = 'PirateBombGame class not found!';
+                    }
+                };
+                script.onerror = () => {
+                    status.textContent = 'Failed to load game script!';
+                };
+                document.head.appendChild(script);
+                
+            } catch (error) {
+                status.textContent = 'Canvas test failed: ' + error.message;
+                console.error('Canvas error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
