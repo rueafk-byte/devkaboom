@@ -163,12 +163,6 @@ async function startServer() {
         // Rate limiting
         app.use(rateLimitMiddleware);
         
-        // Static files
-        app.use(express.static(path.join(__dirname, '.'), {
-            maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
-            etag: true
-        }));
-        
         // Health check endpoint
         app.get('/health', async (req, res) => {
             try {
@@ -283,6 +277,12 @@ async function startServer() {
         app.use('/api/leaderboard', leaderboardRoutes);
         app.use('/api/admin', authMiddleware, adminRoutes);
         app.use('/api/web3', web3Routes);
+        
+        // Static files (serve after API routes)
+        app.use(express.static(path.join(__dirname, '.'), {
+            maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+            etag: true
+        }));
         
         // WebSocket connection handling
         io.on('connection', (socket) => {
