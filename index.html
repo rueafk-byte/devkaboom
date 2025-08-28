@@ -329,23 +329,41 @@
         // Initialize game when everything is ready
         function initializeGame() {
             try {
-                // Initialize game components
-                if (window.gameIntegration) {
-                    window.gameIntegration.init();
-                }
+                console.log('🎮 Starting game initialization...');
                 
-                if (window.gameUI) {
-                    window.gameUI.init();
-                }
+                // Initialize game components (non-blocking)
+                setTimeout(() => {
+                    if (window.gameIntegration) {
+                        window.gameIntegration.init();
+                    }
+                    
+                    if (window.gameUI) {
+                        window.gameUI.init();
+                    }
+                    
+                    if (window.performanceOptimizer) {
+                        window.performanceOptimizer.init();
+                    }
+                }, 1000);
                 
-                if (window.performanceOptimizer) {
-                    window.performanceOptimizer.init();
-                }
-                
-                // Start the game
-                if (typeof Game !== 'undefined') {
-                    const game = new Game();
-                    game.start();
+                // Start the game immediately
+                if (typeof PirateBombGame !== 'undefined') {
+                    console.log('✅ Creating game instance...');
+                    const game = new PirateBombGame();
+                    console.log('✅ Game instance created successfully');
+                    
+                    // Hide loading screen after game starts
+                    setTimeout(() => {
+                        const loadingScreen = document.getElementById('loadingScreen');
+                        if (loadingScreen) {
+                            loadingScreen.style.display = 'none';
+                            console.log('✅ Loading screen hidden');
+                        }
+                    }, 3000);
+                    
+                } else {
+                    console.error('❌ PirateBombGame class not found');
+                    loadingText.textContent = 'Error: Game class not found. Please refresh the page.';
                 }
                 
                 // Report performance metrics
@@ -359,7 +377,7 @@
                 
             } catch (error) {
                 console.error('Failed to initialize game:', error);
-                loadingText.textContent = 'Failed to initialize game. Please refresh the page.';
+                loadingText.textContent = 'Failed to initialize game: ' + error.message;
             }
         }
         
