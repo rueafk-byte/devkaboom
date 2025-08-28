@@ -124,15 +124,7 @@ router.get('/global', asyncHandler(async (req, res) => {
                 pages: 0
             }
         });
-        }
-        source: 'database',
-        pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit)
-        }
-    });
+    }
 }));
 
 // Get level-specific leaderboard
