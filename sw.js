@@ -112,10 +112,14 @@ async function handleStaticFile(request) {
         // If not in cache, fetch from network
         const networkResponse = await fetch(request);
         
-        // Cache the response for future use
-        if (networkResponse.ok) {
-            const cache = await caches.open(STATIC_CACHE);
-            cache.put(request, networkResponse.clone());
+        // Cache the response for future use (skip chrome-extension URLs)
+        if (networkResponse.ok && !request.url.startsWith('chrome-extension://')) {
+            try {
+                const cache = await caches.open(STATIC_CACHE);
+                cache.put(request, networkResponse.clone());
+            } catch (cacheError) {
+                console.warn('Failed to cache request:', cacheError);
+            }
         }
         
         return networkResponse;

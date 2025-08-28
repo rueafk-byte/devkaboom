@@ -120,9 +120,27 @@ async function startServer() {
                 directives: {
                     defaultSrc: ["'self'"],
                     styleSrc: ["'self'", "'unsafe-inline'"],
-                    scriptSrc: ["'self'", "'unsafe-eval'"],
-                    imgSrc: ["'self'", "data:", "https:"],
-                    connectSrc: ["'self'", "wss:", "https:"]
+                    scriptSrc: [
+                        "'self'", 
+                        "'unsafe-eval'", 
+                        "'unsafe-inline'",
+                        "https://cdn.socket.io",
+                        "https://unpkg.com",
+                        "https://cdn.jsdelivr.net"
+                    ],
+                    scriptSrcElem: [
+                        "'self'",
+                        "'unsafe-inline'",
+                        "https://cdn.socket.io",
+                        "https://unpkg.com",
+                        "https://cdn.jsdelivr.net"
+                    ],
+                    imgSrc: ["'self'", "data:", "https:", "blob:"],
+                    connectSrc: ["'self'", "wss:", "https:", "http:"],
+                    fontSrc: ["'self'", "https:", "data:"],
+                    objectSrc: ["'none'"],
+                    mediaSrc: ["'self'", "https:"],
+                    frameSrc: ["'self'"]
                 }
             }
         }));
@@ -153,6 +171,7 @@ async function startServer() {
         
         // Health check endpoint
         app.get('/health', async (req, res) => {
+        app.get('/api/health', async (req, res) => {
             try {
                 const health = {
                     status: 'healthy',

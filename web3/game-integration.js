@@ -1,7 +1,7 @@
 // Enhanced Game Integration for Web3 Backend
 class GameIntegration {
     constructor() {
-        this.backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+        this.backendUrl = window.location.origin;
         this.socket = null;
         this.currentSession = null;
         this.playerData = null;
