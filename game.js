@@ -170,16 +170,16 @@ class AssetLoader {
 			if (onProgress) onProgress(loaded, total);
 		};
 
-		// Simplified loading - load only essential assets
-		const totalSteps = 20; // Reduced count for faster loading
+		// Super simplified loading - load only basic assets
+		const totalSteps = 10; // Minimal count for instant loading
 		
 		try {
 			// Load only essential player animations with timeout
 		const playerManifest = this.getPlayerManifest();
 			this.assets.player = {};
 			
-			// Load only the most important player animations
-			const essentialPlayerAnims = ['1-Idle', '2-Run', '4-Jump', '5-Fall', '7-Hit', '8-Dead Hit', '9-Dead Ground'];
+			// Load only the most essential player animations
+			const essentialPlayerAnims = ['1-Idle', '2-Run', '4-Jump'];
 			for (const anim of essentialPlayerAnims) {
 				if (playerManifest[anim]) {
 					try {
@@ -204,8 +204,8 @@ class AssetLoader {
 			const enemiesManifest = this.getEnemiesManifest();
 			this.assets.enemies = {};
 			
-			// Load all enemy types
-			const enemyTypes = ['Bald Pirate', 'Cucumber', 'Big Guy', 'Captain', 'Whale'];
+			// Load only basic enemy types
+			const enemyTypes = ['Bald Pirate'];
 			for (const enemyName of enemyTypes) {
 				if (enemiesManifest[enemyName]) {
 			this.assets.enemies[enemyName] = {};
@@ -480,7 +480,7 @@ class PirateBombGame {
 		this.ctx.imageSmoothingQuality = 'low';
 
 		this.assets = null; // filled after loading
-		this.soundManager = soundManager || null; // reference to global sound manager (optional)
+		this.soundManager = window.soundManager || null; // reference to global sound manager (optional)
 
 		this.gameState = {
 			currentScore: 0,
@@ -574,120 +574,13 @@ class PirateBombGame {
 			// Hide loading screen
 			document.getElementById('loadingScreen').style.display = 'none';
 			
-			console.log('Starting game loop...');
+						console.log('Starting game loop...');
 			this.gameLoop();
 			
-			// Web3 Backend Integration - Start Game Session (non-blocking)
-			setTimeout(async () => {
-				if (window.gameIntegration) {
-					try {
-						const sessionData = await window.gameIntegration.startGameSession(
-							this.gameState.level,
-							'normal',
-							'standard'
-						);
-						
-						if (sessionData.success) {
-							console.log('✅ Game session started with backend');
-							this.gameState.startTime = Date.now();
-						} else {
-							console.warn('⚠️ Failed to start game session:', sessionData.error);
-						}
-					} catch (error) {
-						console.error('❌ Error starting game session:', error);
-					}
-				}
-			}, 1000); // Delay Web3 integration to not block game startup
-			
-			// Load saved progress after game is initialized (non-blocking)
-			setTimeout(async () => {
-				if (window.walletConnection && window.walletConnection.loadPlayerProgress) {
-					await window.walletConnection.loadPlayerProgress();
-					console.log('🎮 Game state after loading progress:', {
-						level: this.gameState.level,
-						totalScore: this.gameState.totalScore,
-						currentScore: this.gameState.currentScore,
-						lives: this.gameState.lives
-					});
-				
-				// Save initial state to database
-				if (window.playerDataManager) {
-					const walletAddress = this.getPlayerWalletAddress();
-					if (walletAddress) {
-						const playerProfile = {
-							walletAddress: walletAddress,
-							username: `Kaboom_${walletAddress.slice(0, 6)}`,
-							level: this.gameState.level,
-							totalScore: this.gameState.totalScore,
-							boomTokens: Math.floor(this.gameState.totalScore * 0.10),
-							lives: this.gameState.lives,
-							currentScore: this.gameState.currentScore
-						};
-						
-						window.playerDataManager.savePlayerProfile(playerProfile).then(result => {
-							if (result.success) {
-								console.log('✅ Initial player data saved to database');
-							} else {
-								console.warn('⚠️ Failed to save initial data to database:', result.error);
-							}
-						});
-					} else {
-						console.log('⏳ Wallet not connected yet, will save initial data when connected');
-					}
-				}
-				
-						// Update token display immediately after loading progress
-		const playerTokenBalance = document.getElementById('playerTokenBalance');
-		if (playerTokenBalance) {
-			const currentTokens = Math.floor(this.gameState.totalScore * 0.10);
-			playerTokenBalance.textContent = currentTokens;
-			console.log(`💰 Progress loaded - Token display updated: ${currentTokens} (from score: ${this.gameState.totalScore})`);
-		}
-		
-		// Sync current game state to database when wallet connects
-		if (window.playerRegistry && window.playerRegistry.syncGameStateToDatabase) {
-			window.playerRegistry.syncGameStateToDatabase();
-		}
-				
-				// Save current state to database after loading progress
-				if (window.playerDataManager) {
-					const walletAddress = this.getPlayerWalletAddress();
-					if (walletAddress) {
-						const playerProfile = {
-							walletAddress: walletAddress,
-							username: window.playerProfile?.username || `Kaboom_${walletAddress.slice(0, 6)}`,
-							level: this.gameState.level,
-							totalScore: this.gameState.totalScore,
-							boomTokens: Math.floor(this.gameState.totalScore * 0.10),
-							lives: this.player.lives,
-							currentScore: this.gameState.currentScore
-						};
-						
-						window.playerDataManager.savePlayerProfile(playerProfile).then(result => {
-							if (result.success) {
-								console.log('✅ Player data synced to database after loading progress');
-							} else {
-								console.warn('⚠️ Failed to sync to database:', result.error);
-							}
-						});
-					} else {
-						console.log('⏳ Wallet not connected yet, will sync when connected');
-					}
-				}
-			}
-		}, 2000); // Delay player progress loading to not block game startup
-			
-			// Start background music after user interaction (game start)
+			// Start background music
 			if (this.soundManager && this.soundManager.startBackgroundMusic) {
-				console.log('Starting background music from game boot...');
-				// Start music immediately since user clicked start button
+				console.log('Starting background music...');
 				this.soundManager.startBackgroundMusic();
-			}
-			
-			// Also try global music start function
-			if (window.startMusic) {
-				console.log('Calling global startMusic function...');
-				window.startMusic();
 			}
 		} catch (error) {
 			console.error('Error during game boot:', error);
