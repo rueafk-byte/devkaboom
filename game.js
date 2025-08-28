@@ -577,35 +577,38 @@ class PirateBombGame {
 			console.log('Starting game loop...');
 			this.gameLoop();
 			
-			// Web3 Backend Integration - Start Game Session
-			if (window.gameIntegration) {
-				try {
-					const sessionData = await window.gameIntegration.startGameSession(
-						this.gameState.level,
-						'normal',
-						'standard'
-					);
-					
-					if (sessionData.success) {
-						console.log('✅ Game session started with backend');
-						this.gameState.startTime = Date.now();
-					} else {
-						console.warn('⚠️ Failed to start game session:', sessionData.error);
+			// Web3 Backend Integration - Start Game Session (non-blocking)
+			setTimeout(async () => {
+				if (window.gameIntegration) {
+					try {
+						const sessionData = await window.gameIntegration.startGameSession(
+							this.gameState.level,
+							'normal',
+							'standard'
+						);
+						
+						if (sessionData.success) {
+							console.log('✅ Game session started with backend');
+							this.gameState.startTime = Date.now();
+						} else {
+							console.warn('⚠️ Failed to start game session:', sessionData.error);
+						}
+					} catch (error) {
+						console.error('❌ Error starting game session:', error);
 					}
-				} catch (error) {
-					console.error('❌ Error starting game session:', error);
 				}
-			}
+			}, 1000); // Delay Web3 integration to not block game startup
 			
-			// Load saved progress after game is initialized
-			if (window.walletConnection && window.walletConnection.loadPlayerProgress) {
-				await window.walletConnection.loadPlayerProgress();
-				console.log('🎮 Game state after loading progress:', {
-					level: this.gameState.level,
-					totalScore: this.gameState.totalScore,
-					currentScore: this.gameState.currentScore,
-					lives: this.gameState.lives
-				});
+			// Load saved progress after game is initialized (non-blocking)
+			setTimeout(async () => {
+				if (window.walletConnection && window.walletConnection.loadPlayerProgress) {
+					await window.walletConnection.loadPlayerProgress();
+					console.log('🎮 Game state after loading progress:', {
+						level: this.gameState.level,
+						totalScore: this.gameState.totalScore,
+						currentScore: this.gameState.currentScore,
+						lives: this.gameState.lives
+					});
 				
 				// Save initial state to database
 				if (window.playerDataManager) {
@@ -672,6 +675,7 @@ class PirateBombGame {
 					}
 				}
 			}
+		}, 2000); // Delay player progress loading to not block game startup
 			
 			// Start background music after user interaction (game start)
 			if (this.soundManager && this.soundManager.startBackgroundMusic) {
