@@ -5,14 +5,16 @@ const { game: gameRedis } = require('../config/redis');
 const { asyncHandler, ValidationError } = require('../middleware/errorHandler');
 const cron = require('node-cron');
 
-// Schedule leaderboard updates
-cron.schedule('*/5 * * * *', async () => {
-    try {
-        await updateLeaderboardCache();
-    } catch (error) {
-        console.error('Leaderboard cache update failed:', error);
-    }
-});
+// Schedule leaderboard updates (disabled when no database)
+if (process.env.DB_HOST) {
+    cron.schedule('*/5 * * * *', async () => {
+        try {
+            await updateLeaderboardCache();
+        } catch (error) {
+            console.error('Leaderboard cache update failed:', error);
+        }
+    });
+}
 
 // Update leaderboard cache
 async function updateLeaderboardCache() {
