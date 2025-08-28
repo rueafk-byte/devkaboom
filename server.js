@@ -223,7 +223,59 @@ async function startServer() {
             }
         });
         
-
+        // API health endpoint (same as /health but under /api)
+        app.get('/api/health', async (req, res) => {
+            try {
+                const health = {
+                    status: 'healthy',
+                    timestamp: new Date().toISOString(),
+                    services: {
+                        database: 'unknown',
+                        redis: 'unknown',
+                        web3: 'unknown'
+                    },
+                    uptime: process.uptime(),
+                    memory: process.memoryUsage(),
+                    version: process.env.npm_package_version || '2.0.0'
+                };
+                
+                // Check database health
+                try {
+                    const dbHealth = await db.healthCheck();
+                    health.services.database = dbHealth.status;
+                } catch (error) {
+                    health.services.database = 'unhealthy';
+                }
+                
+                // Check Redis health
+                try {
+                    const redisHealth = await redisClient.healthCheck();
+                    health.services.redis = redisHealth.status;
+                } catch (error) {
+                    health.services.redis = 'unhealthy';
+                }
+                
+                // Check Web3 health
+                try {
+                    health.services.web3 = web3Service && web3Service.isConnected() ? 'healthy' : 'unhealthy';
+                } catch (error) {
+                    health.services.web3 = 'unhealthy';
+                }
+                
+                const isHealthy = health.services.database === 'healthy' || 
+                                health.services.redis === 'healthy' || 
+                                health.services.web3 === 'healthy';
+                
+                res.status(isHealthy ? 200 : 503).json(health);
+            } catch (error) {
+                logger.error('Health check failed:', error);
+                res.status(503).json({
+                    status: 'unhealthy',
+                    error: error.message,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        });
         
         // API routes
         app.use('/api/players', playerRoutes);

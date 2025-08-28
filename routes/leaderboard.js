@@ -69,37 +69,62 @@ router.get('/global', asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
     
-    // Try cache first
-    const cachedLeaderboard = await gameRedis.getLeaderboard('global', limit);
-    if (cachedLeaderboard.length > 0) {
-        return res.json({
+    try {
+        // Try cache first
+        const cachedLeaderboard = await gameRedis.getLeaderboard('global', limit);
+        if (cachedLeaderboard.length > 0) {
+            return res.json({
+                success: true,
+                leaderboard: cachedLeaderboard.slice(offset, offset + limit),
+                source: 'cache',
+                pagination: {
+                    page,
+                    limit,
+                    total: cachedLeaderboard.length,
+                    pages: Math.ceil(cachedLeaderboard.length / limit)
+                }
+            });
+        }
+        
+        // Get from database
+        const result = await db.query(`
+            SELECT wallet_address, username, level, total_score, boom_tokens, created_at
+            FROM players
+            ORDER BY total_score DESC
+            LIMIT $1 OFFSET $2
+        `, [limit, offset]);
+        
+        // Get total count
+        const countResult = await db.query('SELECT COUNT(*) as total FROM players');
+        const total = parseInt(countResult.rows[0].total);
+        
+        res.json({
             success: true,
-            leaderboard: cachedLeaderboard.slice(offset, offset + limit),
-            source: 'cache',
+            leaderboard: result.rows,
+            source: 'database',
             pagination: {
                 page,
                 limit,
-                total: cachedLeaderboard.length,
-                pages: Math.ceil(cachedLeaderboard.length / limit)
+                total,
+                pages: Math.ceil(total / limit)
             }
         });
-    }
-    
-    // Get from database
-    const result = await db.query(`
-        SELECT wallet_address, username, level, total_score, boom_tokens, created_at
-        FROM players
-        ORDER BY total_score DESC
-        LIMIT $1 OFFSET $2
-    `, [limit, offset]);
-    
-    // Get total count
-    const countResult = await db.query('SELECT COUNT(*) as total FROM players');
-    const total = parseInt(countResult.rows[0].total);
-    
-    res.json({
-        success: true,
-        leaderboard: result.rows,
+    } catch (error) {
+        // Fallback when database is not available
+        console.log('Database not available, returning empty leaderboard');
+        res.json({
+            success: true,
+            leaderboard: [],
+            source: 'fallback',
+            message: 'Leaderboard temporarily unavailable',
+            pagination: {
+                page,
+                limit,
+                total: 0,
+                pages: 0
+            }
+        });
+        }
         source: 'database',
         pagination: {
             page,
@@ -121,55 +146,73 @@ router.get('/level/:level', asyncHandler(async (req, res) => {
         throw new ValidationError('Level must be between 1 and 40');
     }
     
-    // Try cache first
-    const cachedLeaderboard = await gameRedis.getLeaderboard(`level_${level}`, limit);
-    if (cachedLeaderboard.length > 0) {
-        return res.json({
+    try {
+        // Try cache first
+        const cachedLeaderboard = await gameRedis.getLeaderboard(`level_${level}`, limit);
+        if (cachedLeaderboard.length > 0) {
+            return res.json({
+                success: true,
+                leaderboard: cachedLeaderboard.slice(offset, offset + limit),
+                source: 'cache',
+                level: parseInt(level),
+                pagination: {
+                    page,
+                    limit,
+                    total: cachedLeaderboard.length,
+                    pages: Math.ceil(cachedLeaderboard.length / limit)
+                }
+            });
+        }
+        
+        // Get from database
+        const result = await db.query(`
+            SELECT p.wallet_address, p.username, p.level, p.total_score, p.boom_tokens,
+                   gs.score_earned, gs.session_start
+            FROM players p
+            JOIN game_sessions gs ON p.wallet_address = gs.wallet_address
+            WHERE gs.game_data->>'level' = $1
+            ORDER BY gs.score_earned DESC
+            LIMIT $2 OFFSET $3
+        `, [level, limit, offset]);
+        
+        // Get total count for this level
+        const countResult = await db.query(`
+            SELECT COUNT(DISTINCT p.wallet_address) as total
+            FROM players p
+            JOIN game_sessions gs ON p.wallet_address = gs.wallet_address
+            WHERE gs.game_data->>'level' = $1
+        `, [level]);
+        const total = parseInt(countResult.rows[0].total);
+        
+        res.json({
             success: true,
-            leaderboard: cachedLeaderboard.slice(offset, offset + limit),
-            source: 'cache',
+            leaderboard: result.rows,
+            source: 'database',
             level: parseInt(level),
             pagination: {
                 page,
                 limit,
-                total: cachedLeaderboard.length,
-                pages: Math.ceil(cachedLeaderboard.length / limit)
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        // Fallback when database is not available
+        console.log('Database not available, returning empty level leaderboard');
+        res.json({
+            success: true,
+            leaderboard: [],
+            source: 'fallback',
+            level: parseInt(level),
+            message: 'Leaderboard temporarily unavailable',
+            pagination: {
+                page,
+                limit,
+                total: 0,
+                pages: 0
             }
         });
     }
-    
-    // Get from database
-    const result = await db.query(`
-        SELECT p.wallet_address, p.username, p.level, p.total_score, p.boom_tokens,
-               gs.score_earned, gs.session_start
-        FROM players p
-        JOIN game_sessions gs ON p.wallet_address = gs.wallet_address
-        WHERE gs.game_data->>'level' = $1
-        ORDER BY gs.score_earned DESC
-        LIMIT $2 OFFSET $3
-    `, [level, limit, offset]);
-    
-    // Get total count for this level
-    const countResult = await db.query(`
-        SELECT COUNT(DISTINCT p.wallet_address) as total
-        FROM players p
-        JOIN game_sessions gs ON p.wallet_address = gs.wallet_address
-        WHERE gs.game_data->>'level' = $1
-    `, [level]);
-    const total = parseInt(countResult.rows[0].total);
-    
-    res.json({
-        success: true,
-        leaderboard: result.rows,
-        source: 'database',
-        level: parseInt(level),
-        pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit)
-        }
-    });
 }));
 
 // Get token leaderboard
