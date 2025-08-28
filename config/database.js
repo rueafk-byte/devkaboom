@@ -15,22 +15,35 @@ const dbConfig = {
     connectionTimeoutMillis: 2000,
 };
 
-// Create connection pool
-const pool = new Pool(dbConfig);
+// Check if we have database credentials
+const hasDatabaseCredentials = process.env.DB_HOST || process.env.DATABASE_URL;
+
+// Create connection pool only if we have database credentials
+let pool = null;
+if (hasDatabaseCredentials) {
+    pool = new Pool(dbConfig);
+}
 
 // Test database connection
-pool.on('connect', () => {
-    console.log('Connected to PostgreSQL database');
-});
+if (pool) {
+    pool.on('connect', () => {
+        console.log('Connected to PostgreSQL database');
+    });
 
-pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    // Don't exit process, just log the error
-    console.log('Database connection error, but continuing...');
-});
+    pool.on('error', (err) => {
+        console.error('Unexpected error on idle client', err);
+        // Don't exit process, just log the error
+        console.log('Database connection error, but continuing...');
+    });
+}
 
 // Database initialization
 async function initializeDatabase() {
+    if (!hasDatabaseCredentials) {
+        console.log('No database credentials provided, running without database');
+        return;
+    }
+    
     try {
         // Create tables if they don't exist
         await createTables();
@@ -43,6 +56,9 @@ async function initializeDatabase() {
 
 // Create all necessary tables
 async function createTables() {
+    if (!pool) {
+        throw new Error('Database pool not initialized');
+    }
     const client = await pool.connect();
     
     try {
@@ -110,19 +126,36 @@ async function createTables() {
 // Database operations
 const db = {
     // Query execution
-    query: (text, params) => pool.query(text, params),
+    query: (text, params) => {
+        if (!pool) {
+            throw new Error('Database not available');
+        }
+        return pool.query(text, params);
+    },
     
     // Get a client from the pool
-    getClient: () => pool.connect(),
+    getClient: () => {
+        if (!pool) {
+            throw new Error('Database not available');
+        }
+        return pool.connect();
+    },
     
     // Initialize database
     initialize: initializeDatabase,
     
     // Close pool
-    close: () => pool.end(),
+    close: () => {
+        if (pool) {
+            return pool.end();
+        }
+    },
     
     // Health check
     healthCheck: async () => {
+        if (!pool) {
+            return { status: 'not_configured', message: 'No database configured' };
+        }
         try {
             const result = await pool.query('SELECT NOW()');
             return { status: 'healthy', timestamp: result.rows[0].now };

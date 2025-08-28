@@ -144,9 +144,9 @@ const redisClient = {
     sismember: (key, member) => client.sismember(key, member),
     
     // Sorted set operations
-    zadd: (key, score, member) => client.zadd(key, score, member),
-    zrange: (key, start, stop, withscores = false) => client.zrange(key, start, stop, withscores ? 'WITHSCORES' : ''),
-    zrevrange: (key, start, stop, withscores = false) => client.zrevrange(key, start, stop, withscores ? 'WITHSCORES' : ''),
+    zadd: (key, score, member) => client.zAdd(key, { score: score, value: member }),
+    zrange: (key, start, stop, withscores = false) => client.zRange(key, start, stop, { ...(withscores && { WITHSCORES: true }) }),
+    zrevrange: (key, start, stop, withscores = false) => client.zRange(key, start, stop, { REV: true, ...(withscores && { WITHSCORES: true }) }),
     zscore: (key, member) => client.zscore(key, member),
     zrank: (key, member) => client.zrank(key, member),
     zrevrank: (key, member) => client.zrevrank(key, member),
