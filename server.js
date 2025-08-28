@@ -171,7 +171,6 @@ async function startServer() {
         
         // Health check endpoint
         app.get('/health', async (req, res) => {
-        app.get('/api/health', async (req, res) => {
             try {
                 const health = {
                     status: 'healthy',
@@ -223,6 +222,8 @@ async function startServer() {
                 });
             }
         });
+        
+
         
         // API routes
         app.use('/api/players', playerRoutes);
