@@ -105,7 +105,6 @@ player_data.db
 
 # Game specific
 game.js.backup
-test-*.html
 
 # Blockchain/Web3
 wallet-keys/
