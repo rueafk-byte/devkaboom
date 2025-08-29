@@ -4,8 +4,9 @@
   "description": "Production server for Kaboom game with admin panel and player data management",
   "main": "server.js",
   "scripts": {
-    "start": "node backend/server-enhanced.js",
-    "dev": "nodemon backend/server-enhanced.js",
+    "start": "python3 -m http.server 8080",
+    "build": "echo 'Static site - no build needed'",
+    "dev": "python3 -m http.server 8000",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
