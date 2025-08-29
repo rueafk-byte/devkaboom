@@ -2115,12 +2115,15 @@
                             
                             // Player can play - start the game
                             console.log('✅ Player can play - starting game');
-                            if (typeof window.startGame === 'function') {
+                            // Start game immediately
+                            console.log('🎮 Starting game directly...');
+                            document.getElementById('welcomeMenu').style.display = 'none';
+                            document.getElementById('gameCanvas').style.display = 'block';
+                            
+                            // Force start the game
+                            setTimeout(() => {
                                 window.startGame();
-                            } else {
-                                console.error('❌ startGame function not found!');
-                                alert('Error: Game initialization failed. Please refresh the page.');
-                            }
+                            }, 100);
                         } else {
                             // Try to initialize RechargeManager if not available
                             console.log('🔋 RechargeManager not available - attempting to initialize...');
