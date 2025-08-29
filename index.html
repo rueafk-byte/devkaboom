@@ -1550,7 +1550,6 @@
                     <h3>🔗 Connect Wallet</h3>
                     <div class="wallet-status disconnected" id="walletStatus">Wallet not connected</div>
                     <button class="connect-wallet-btn" id="connectWalletBtn">Connect Wallet</button>
-                    <button class="connect-wallet-btn" id="emergencyConnectBtn" onclick="window.emergencyWalletConnect()" style="background: #ff6b6b; margin-left: 10px; font-size: 12px;">Emergency Connect</button>
                 </div>
                 
                 <div id="startButtonContainer" style="display: none; margin: 0; text-align: center;">
@@ -2011,18 +2010,33 @@
                             
                             // Create wallet connection functions first
                             window.connectPhantom = async function() {
-                                console.log('👻 Attempting Phantom connection...');
+                                console.log('👻 Attempting Phantom connection with fresh authentication...');
                                 try {
                                     if (window.solana && window.solana.isPhantom) {
-                                        const response = await window.solana.connect();
-                                        console.log('✅ Phantom connected:', response.publicKey.toString());
+                                        // Force fresh connection - never use cached/trusted connections
+                                        console.log('🔒 Requesting fresh wallet authentication...');
+                                        
+                                        // Disconnect first if already connected to force fresh auth
+                                        if (window.solana.isConnected) {
+                                            console.log('🔄 Disconnecting existing connection for fresh auth...');
+                                            await window.solana.disconnect();
+                                        }
+                                        
+                                        // Always request fresh connection with user approval
+                                        const response = await window.solana.connect({ 
+                                            onlyIfTrusted: false  // Always show approval popup
+                                        });
+                                        
+                                        console.log('✅ Phantom connected with fresh authentication:', response.publicKey.toString());
                                         
                                         // Update the wallet connection system
                                         if (window.walletConnection) {
                                             window.walletConnection.isConnected = true;
                                             window.walletConnection.publicKey = response.publicKey;
                                             window.walletConnection.selectedWallet = 'phantom';
-                                            window.walletConnection.updateConnectionUI();
+                                            if (typeof window.walletConnection.updateConnectionUI === 'function') {
+                                                window.walletConnection.updateConnectionUI();
+                                            }
                                         }
                                         
                                         // Update UI elements
@@ -2032,7 +2046,7 @@
                                         const startButton = document.getElementById('startButton');
                                         
                                         if (walletStatus) {
-                                            walletStatus.textContent = `Connected: ${response.publicKey.toString().substring(0, 8)}...`;
+                                            walletStatus.textContent = `Connected: ${response.publicKey.toString().substring(0, 8)}... (Phantom)`;
                                             walletStatus.className = 'wallet-status connected';
                                         }
                                         if (connectBtn) connectBtn.style.display = 'none';
@@ -2043,13 +2057,17 @@
                                             startButton.style.cursor = 'pointer';
                                         }
                                         
-                                        alert('Phantom wallet connected successfully!');
+                                        alert('Phantom wallet connected successfully with fresh authentication!');
                                     } else {
                                         alert('Phantom wallet not found! Please install Phantom extension.');
                                     }
                                 } catch (error) {
                                     console.error('❌ Phantom connection failed:', error);
-                                    alert('Phantom connection failed: ' + error.message);
+                                    if (error.code === 4001 || error.message.includes('User rejected')) {
+                                        alert('Phantom connection was cancelled by user.');
+                                    } else {
+                                        alert('Phantom connection failed: ' + error.message);
+                                    }
                                 }
                             };
                             
@@ -2070,13 +2088,18 @@
                                         console.log('✅ Method 1: Using window.solflare...');
                                         connectionMethod = 'window.solflare';
                                         
-                                        // Check if already connected
+                                        // Force fresh connection - disconnect first if connected
                                         if (window.solflare.isConnected) {
-                                            console.log('🔄 Solflare already connected, getting existing connection...');
-                                            response = { publicKey: window.solflare.publicKey };
-                                        } else {
-                                            response = await window.solflare.connect({ onlyIfTrusted: false });
+                                            console.log('🔄 Disconnecting existing Solflare connection for fresh auth...');
+                                            try {
+                                                await window.solflare.disconnect();
+                                            } catch (e) {
+                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
+                                            }
                                         }
+                                        
+                                        // Always request fresh connection with user approval
+                                        response = await window.solflare.connect({ onlyIfTrusted: false });
                                         walletObj = window.solflare;
                                     }
                                     // Method 2: Try window.solana if it's Solflare and NOT Phantom
@@ -2084,18 +2107,34 @@
                                         console.log('✅ Method 2: Using window.solana (Solflare-only)...');
                                         connectionMethod = 'window.solana (Solflare-only)';
                                         
+                                        // Force fresh connection
                                         if (window.solana.isConnected) {
-                                            console.log('🔄 Solana (Solflare) already connected...');
-                                            response = { publicKey: window.solana.publicKey };
-                                        } else {
-                                            response = await window.solana.connect({ onlyIfTrusted: false });
+                                            console.log('🔄 Disconnecting existing Solana (Solflare) connection for fresh auth...');
+                                            try {
+                                                await window.solana.disconnect();
+                                            } catch (e) {
+                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
+                                            }
                                         }
+                                        
+                                        // Always request fresh connection
+                                        response = await window.solana.connect({ onlyIfTrusted: false });
                                         walletObj = window.solana;
                                     }
                                     // Method 3: Check for other Solflare injection patterns
                                     else if (window.solflareWallet && typeof window.solflareWallet.connect === 'function') {
                                         console.log('✅ Method 3: Using window.solflareWallet...');
                                         connectionMethod = 'window.solflareWallet';
+                                        
+                                        // Force fresh connection
+                                        if (window.solflareWallet.isConnected) {
+                                            try {
+                                                await window.solflareWallet.disconnect();
+                                            } catch (e) {
+                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
+                                            }
+                                        }
+                                        
                                         response = await window.solflareWallet.connect({ onlyIfTrusted: false });
                                         walletObj = window.solflareWallet;
                                     }
@@ -2111,11 +2150,16 @@
                                             return;
                                         }
                                         
+                                        // Force fresh connection
                                         if (window.solana.isConnected) {
-                                            response = { publicKey: window.solana.publicKey };
-                                        } else {
-                                            response = await window.solana.connect({ onlyIfTrusted: false });
+                                            try {
+                                                await window.solana.disconnect();
+                                            } catch (e) {
+                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
+                                            }
                                         }
+                                        
+                                        response = await window.solana.connect({ onlyIfTrusted: false });
                                         walletObj = window.solana;
                                     }
                                     else {
@@ -2217,18 +2261,34 @@
                             };
                             
                             window.connectBackpack = async function() {
-                                console.log('🎒 Attempting Backpack connection...');
+                                console.log('🎒 Attempting Backpack connection with fresh authentication...');
                                 try {
                                     if (window.backpack && window.backpack.connect) {
-                                        const response = await window.backpack.connect();
-                                        console.log('✅ Backpack connected:', response.publicKey.toString());
+                                        // Force fresh connection - disconnect first if connected
+                                        if (window.backpack.isConnected) {
+                                            console.log('🔄 Disconnecting existing Backpack connection for fresh auth...');
+                                            try {
+                                                await window.backpack.disconnect();
+                                            } catch (e) {
+                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
+                                            }
+                                        }
+                                        
+                                        // Always request fresh connection with user approval
+                                        const response = await window.backpack.connect({ 
+                                            onlyIfTrusted: false  // Always show approval popup
+                                        });
+                                        
+                                        console.log('✅ Backpack connected with fresh authentication:', response.publicKey.toString());
                                         
                                         // Update the wallet connection system
                                         if (window.walletConnection) {
                                             window.walletConnection.isConnected = true;
                                             window.walletConnection.publicKey = response.publicKey;
                                             window.walletConnection.selectedWallet = 'backpack';
-                                            window.walletConnection.updateConnectionUI();
+                                            if (typeof window.walletConnection.updateConnectionUI === 'function') {
+                                                window.walletConnection.updateConnectionUI();
+                                            }
                                         }
                                         
                                         // Update UI elements
@@ -2238,7 +2298,7 @@
                                         const startButton = document.getElementById('startButton');
                                         
                                         if (walletStatus) {
-                                            walletStatus.textContent = `Connected: ${response.publicKey.toString().substring(0, 8)}...`;
+                                            walletStatus.textContent = `Connected: ${response.publicKey.toString().substring(0, 8)}... (Backpack)`;
                                             walletStatus.className = 'wallet-status connected';
                                         }
                                         if (connectBtn) connectBtn.style.display = 'none';
@@ -2249,13 +2309,17 @@
                                             startButton.style.cursor = 'pointer';
                                         }
                                         
-                                        alert('Backpack wallet connected successfully!');
+                                        alert('Backpack wallet connected successfully with fresh authentication!');
                                     } else {
                                         alert('Backpack wallet not found! Please install Backpack extension.');
                                     }
                                 } catch (error) {
                                     console.error('❌ Backpack connection failed:', error);
-                                    alert('Backpack connection failed: ' + error.message);
+                                    if (error.code === 4001 || error.message.includes('User rejected')) {
+                                        alert('Backpack connection was cancelled by user.');
+                                    } else {
+                                        alert('Backpack connection failed: ' + error.message);
+                                    }
                                 }
                             };
                             
@@ -2282,7 +2346,10 @@
                                         width: 90%;
                                         text-align: center;
                                     ">
-                                        <h2 style="color: #333; margin-bottom: 20px;">🔗 Choose Your Wallet</h2>
+                                        <h2 style="color: #333; margin-bottom: 10px;">🔗 Choose Your Wallet</h2>
+                                        <p style="color: #666; font-size: 14px; margin-bottom: 20px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+                                            🔒 <strong>Secure Connection:</strong> You will be asked to approve this connection in your wallet for security.
+                                        </p>
                                         
                                         <div onclick="window.connectPhantom(); document.getElementById('walletSelectorModal').remove();" style="
                                             padding: 15px; margin: 10px 0; background: #f0f8ff;
