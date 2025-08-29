@@ -19,21 +19,150 @@ class WalletConnection {
                 name: 'Phantom',
                 icon: '<img src="Sprites/emojis/phantom.png" alt="Phantom" width="32" height="32" style="border-radius: 8px;">',
                 description: 'Most popular Solana wallet',
-                check: () => window.solana && window.solana.isPhantom,
-                connect: () => window.solana.connect(),
-                signMessage: (message) => window.solana.signMessage(message, 'utf8'),
-                disconnect: () => window.solana.disconnect(),
-                getPublicKey: () => window.solana.publicKey
+                check: () => {
+                    const hasPhantom = window.solana && window.solana.isPhantom;
+                    console.log('🔍 Phantom check result:', hasPhantom);
+                    if (hasPhantom) {
+                        console.log('✅ Phantom wallet object:', window.solana);
+                    }
+                    return hasPhantom;
+                },
+                connect: async () => {
+                    console.log('🔗 Phantom connect method called');
+                    if (!window.solana || !window.solana.isPhantom) {
+                        throw new Error('Phantom wallet not available');
+                    }
+                    
+                    console.log('🔗 Attempting Phantom connection...');
+                    try {
+                        // Check if already connected
+                        if (window.solana.isConnected) {
+                            console.log('✅ Phantom already connected, getting public key');
+                            return { publicKey: window.solana.publicKey };
+                        }
+                        
+                        // Request connection
+                        console.log('🔗 Requesting new Phantom connection...');
+                        const response = await window.solana.connect({ onlyIfTrusted: false });
+                        console.log('✅ Phantom connection response:', response);
+                        return response;
+                    } catch (error) {
+                        console.error('❌ Phantom connection error:', error);
+                        throw error;
+                    }
+                },
+                signMessage: (message) => {
+                    console.log('🔐 Phantom sign message called');
+                    return window.solana.signMessage(message, 'utf8');
+                },
+                disconnect: () => {
+                    console.log('🔗 Phantom disconnect called');
+                    return window.solana.disconnect();
+                },
+                getPublicKey: () => {
+                    console.log('🔍 Phantom getPublicKey called');
+                    return window.solana.publicKey;
+                }
             },
             solflare: {
                 name: 'Solflare',
                 icon: '<img src="Sprites/emojis/solflare.png" alt="Solflare" width="32" height="32" style="border-radius: 8px;">',
                 description: 'Professional Solana wallet',
-                check: () => window.solflare && window.solflare.isSolflare,
-                connect: () => window.solflare.connect(),
-                signMessage: (message) => window.solflare.signMessage(message, 'utf8'),
-                disconnect: () => window.solflare.disconnect(),
-                getPublicKey: () => window.solflare.publicKey
+                check: () => {
+                    console.log('🔍 Checking for Solflare wallet...');
+                    
+                    // Log all possible Solflare properties
+                    console.log('window.solflare:', window.solflare);
+                    console.log('window.solana:', window.solana);
+                    console.log('window.solflareWallet:', window.solflareWallet);
+                    console.log('window.solanaSolflare:', window.solanaSolflare);
+                    
+                    // Check for different Solflare detection patterns
+                    const checks = {
+                        'window.solflare.isSolflare': window.solflare && window.solflare.isSolflare,
+                        'window.solana.isSolflare (no phantom)': window.solana && window.solana.isSolflare && !window.solana.isPhantom,
+                        'window.solflareWallet.isSolflare': window.solflareWallet && window.solflareWallet.isSolflare,
+                        'window.solflare exists': !!window.solflare,
+                        'window.solflare.isConnected': window.solflare && window.solflare.isConnected,
+                        'window.solana.provider === solflare': window.solana && window.solana.provider === 'solflare',
+                        'window.solflare.name': window.solflare && window.solflare.name,
+                        'document.querySelector Solflare': !!document.querySelector('script[src*="solflare"]'),
+                        'phantom conflict check': window.solana && window.solana.isPhantom && window.solana.isSolflare
+                    };
+                    
+                    console.log('🔍 Solflare detection checks:', checks);
+                    
+                    // PRIORITIZE dedicated Solflare objects over shared window.solana
+                    // This prevents Phantom conflicts
+                    const hasSolflare = 
+                        (window.solflare && (window.solflare.isSolflare || window.solflare.name === 'Solflare')) ||
+                        (window.solflareWallet && window.solflareWallet.isSolflare) ||
+                        (window.solanaSolflare) ||
+                        (window.solana && window.solana.isSolflare && !window.solana.isPhantom) ||
+                        (window.solana && window.solana.provider === 'solflare');
+                    
+                    console.log('✅ Solflare detected:', hasSolflare);
+                    return hasSolflare;
+                },
+                connect: async () => {
+                    console.log('🔗 Solflare connect method called');
+                    
+                    // PRIORITIZE actual Solflare object over shared window.solana
+                    // This prevents Phantom from hijacking Solflare connections
+                    if (window.solflare && window.solflare.connect) {
+                        console.log('🔗 Using DEDICATED window.solflare.connect()');
+                        return await window.solflare.connect();
+                    } else if (window.solflareWallet && window.solflareWallet.connect) {
+                        console.log('🔗 Using window.solflareWallet.connect()');
+                        return await window.solflareWallet.connect();
+                    } else if (window.solanaSolflare && window.solanaSolflare.connect) {
+                        console.log('🔗 Using window.solanaSolflare.connect()');
+                        return await window.solanaSolflare.connect();
+                    } else if (window.solana && window.solana.isSolflare && !window.solana.isPhantom) {
+                        console.log('🔗 Using window.solana.connect() with isSolflare (NO PHANTOM)');
+                        return await window.solana.connect();
+                    } else {
+                        console.error('❌ No Solflare connection method found');
+                        console.log('Available window objects:', {
+                            solflare: !!window.solflare,
+                            solana: !!window.solana,
+                            'solana.isPhantom': window.solana && window.solana.isPhantom,
+                            'solana.isSolflare': window.solana && window.solana.isSolflare,
+                            solflareWallet: !!window.solflareWallet,
+                            solanaSolflare: !!window.solanaSolflare
+                        });
+                        throw new Error('Solflare wallet not found or not properly installed');
+                    }
+                },
+                signMessage: (message) => {
+                    if (window.solflare && window.solflare.signMessage) {
+                        return window.solflare.signMessage(message, 'utf8');
+                    } else if (window.solana && window.solana.isSolflare && window.solana.signMessage) {
+                        return window.solana.signMessage(message, 'utf8');
+                    } else if (window.solflareWallet && window.solflareWallet.signMessage) {
+                        return window.solflareWallet.signMessage(message, 'utf8');
+                    } else {
+                        throw new Error('Solflare wallet signMessage not available');
+                    }
+                },
+                disconnect: () => {
+                    if (window.solflare && window.solflare.disconnect) {
+                        return window.solflare.disconnect();
+                    } else if (window.solana && window.solana.isSolflare && window.solana.disconnect) {
+                        return window.solana.disconnect();
+                    } else if (window.solflareWallet && window.solflareWallet.disconnect) {
+                        return window.solflareWallet.disconnect();
+                    }
+                },
+                getPublicKey: () => {
+                    if (window.solflare && window.solflare.publicKey) {
+                        return window.solflare.publicKey;
+                    } else if (window.solana && window.solana.isSolflare && window.solana.publicKey) {
+                        return window.solana.publicKey;
+                    } else if (window.solflareWallet && window.solflareWallet.publicKey) {
+                        return window.solflareWallet.publicKey;
+                    }
+                }
             },
             slope: {
                 name: 'Slope',
@@ -98,6 +227,39 @@ class WalletConnection {
         };
         
         this.initConnection();
+        
+        // Start periodic wallet detection for late-injecting wallets
+        this.startPeriodicWalletDetection();
+    }
+
+    startPeriodicWalletDetection() {
+        console.log('🔄 Starting periodic wallet detection for Solflare...');
+        
+        // Check for Solflare every 2 seconds for the first 30 seconds
+        let checks = 0;
+        const maxChecks = 15; // 30 seconds
+        
+        const detector = setInterval(() => {
+            checks++;
+            console.log(`🔍 Periodic check ${checks}/${maxChecks} for Solflare...`);
+            
+            // Check if Solflare is now available
+            const hasSolflare = this.supportedWallets.solflare.check();
+            
+            if (hasSolflare) {
+                console.log('✅ Solflare detected during periodic check!');
+                // Update wallet selector if it's currently shown
+                this.updateWalletSelector();
+                clearInterval(detector);
+                return;
+            }
+            
+            // Stop checking after maxChecks
+            if (checks >= maxChecks) {
+                console.log('⏰ Periodic Solflare detection stopped after 30 seconds');
+                clearInterval(detector);
+            }
+        }, 2000);
     }
 
     initializeConnection() {
@@ -151,22 +313,28 @@ class WalletConnection {
 
     async connectWallet(walletType = null) {
         try {
-            // If no wallet type specified, try to auto-detect or show wallet selector
+            console.log('🚀 Starting wallet connection process...');
+            
+            // If no wallet type specified, show wallet selector
             if (!walletType) {
                 const availableWallets = this.getAvailableWallets();
+                console.log('🔍 Available wallets detected:', availableWallets.map(w => w.name));
+                
                 if (availableWallets.length === 0) {
-                    throw new Error('No Solana wallets found. Please install a supported wallet extension.');
-                } else if (availableWallets.length === 1) {
-                    walletType = availableWallets[0].key;
+                    const errorMsg = 'No Solana wallets found. Please install Phantom, Solflare, or Backpack wallet extension and refresh the page.';
+                    console.error('❌', errorMsg);
+                    this.showError(errorMsg);
+                    throw new Error(errorMsg);
                 } else {
-                    // Multiple wallets available - show selector
+                    // Always show wallet selector - don't auto-select any wallet
+                    console.log('🎮 Showing wallet selector with available wallets');
                     this.showWalletSelector();
                     return false;
                 }
             }
 
             // Check if wallet is already connected
-            if (this.isConnected) {
+            if (this.isConnected && this.selectedWallet === walletType) {
                 console.log('✅ Wallet already connected');
                 return true;
             }
@@ -177,16 +345,93 @@ class WalletConnection {
                 throw new Error(`Unsupported wallet type: ${walletType}`);
             }
 
-            // Check if wallet is available
-            if (!walletConfig.check()) {
-                throw new Error(`${walletConfig.name} wallet not found. Please install ${walletConfig.name} extension.`);
+            // Check if wallet is available with detailed logging
+            console.log(`🔍 Checking ${walletConfig.name} wallet availability...`);
+            const isAvailable = walletConfig.check();
+            console.log(`🔍 ${walletConfig.name} wallet check result:`, isAvailable);
+            
+            if (!isAvailable) {
+                const errorMsg = `${walletConfig.name} wallet not found. Please install ${walletConfig.name} extension and refresh the page.`;
+                console.error('❌', errorMsg);
+                this.showError(errorMsg);
+                throw new Error(errorMsg);
             }
 
             console.log(`🔗 Connecting to ${walletConfig.name} wallet...`);
             
             // Step 1: Connect to wallet (this opens wallet but doesn't authenticate)
-            const response = await walletConfig.connect();
+            let response;
+            try {
+                console.log(`🔗 Calling ${walletConfig.name} connect method...`);
+                response = await walletConfig.connect();
+                console.log(`✅ ${walletConfig.name} connect response:`, response);
+            } catch (connectionError) {
+                console.error('❌ Connection error details:', connectionError);
+                
+                // If connection fails, provide more helpful error message
+                if (connectionError.code === 4001 || connectionError.message.includes('rejected') || connectionError.message.includes('User rejected')) {
+                    const errorMsg = 'Wallet connection was rejected by user. Please try again and approve the connection.';
+                    this.showError(errorMsg);
+                    throw new Error(errorMsg);
+                } else if (connectionError.message.includes('timeout')) {
+                    const errorMsg = 'Wallet connection timed out. Please check your wallet extension and try again.';
+                    this.showError(errorMsg);
+                    throw new Error(errorMsg);
+                } else {
+                    const errorMsg = `Failed to connect to ${walletConfig.name}: ${connectionError.message}`;
+                    this.showError(errorMsg);
+                    throw new Error(errorMsg);
+                }
+            }
+            
             this.wallet = window[walletType] || window.solana; // Fallback for compatibility
+            
+            // VERIFY WE CONNECTED TO THE CORRECT WALLET
+            console.log('🔍 Verifying wallet connection matches user selection...');
+            if (walletType === 'solflare') {
+                // For Solflare, ensure we're not accidentally using Phantom
+                if (window.solana && window.solana.isPhantom && !window.solflare) {
+                    console.error('❌ ERROR: Selected Solflare but connected to Phantom!');
+                    throw new Error('Wallet connection error: Selected Solflare but Phantom was connected instead. Please ensure Solflare is properly installed.');
+                }
+                console.log('✅ Solflare connection verified - not using Phantom');
+            } else if (walletType === 'phantom') {
+                // For Phantom, ensure we're using the right one
+                if (!window.solana || !window.solana.isPhantom) {
+                    console.error('❌ ERROR: Selected Phantom but wrong wallet connected!');
+                    throw new Error('Wallet connection error: Selected Phantom but wrong wallet was connected.');
+                }
+                console.log('✅ Phantom connection verified');
+            } else if (walletType === 'backpack') {
+                // For Backpack, ensure we're using the right one
+                if (!window.backpack || !window.backpack.isBackpack) {
+                    console.error('❌ ERROR: Selected Backpack but wrong wallet connected!');
+                    throw new Error('Wallet connection error: Selected Backpack but wrong wallet was connected.');
+                }
+                console.log('✅ Backpack connection verified');
+            }
+            
+            // Validate response with detailed logging
+            console.log('🔍 Validating connection response...');
+            if (!response) {
+                const errorMsg = `${walletConfig.name} wallet returned empty response`;
+                console.error('❌', errorMsg);
+                this.showError(errorMsg);
+                throw new Error(errorMsg);
+            }
+            
+            if (!response.publicKey) {
+                const errorMsg = `${walletConfig.name} wallet connection failed - no public key returned`;
+                console.error('❌', errorMsg, 'Response:', response);
+                this.showError(errorMsg);
+                throw new Error(errorMsg);
+            }
+            
+            // Success! Wallet connected
+            console.log('✅ Wallet connection successful!');
+            // Success! Wallet connected
+            console.log('✅ Wallet connection successful!');
+            console.log('🗝 Public Key:', response.publicKey.toString());
             
             // Check if this is a different wallet than before
             const oldWalletAddress = this.publicKey ? this.publicKey.toString() : null;
@@ -331,7 +576,14 @@ By signing this message, you agree to connect your wallet to the Kaboom game.`;
 
     // Show wallet selector modal
     showWalletSelector() {
-        const availableWallets = this.getAvailableWallets();
+        // Filter to only show the 3 requested wallets: Phantom, Solflare, Backpack
+        const priorityWallets = ['phantom', 'solflare', 'backpack'];
+        const allAvailableWallets = this.getAvailableWallets();
+        const availableWallets = allAvailableWallets.filter(wallet => 
+            priorityWallets.includes(wallet.key)
+        );
+        
+        console.log('🎯 Showing wallet selector with priority wallets:', availableWallets.map(w => w.name));
         
         // Create modal HTML
         const modalHTML = `
@@ -471,6 +723,77 @@ By signing this message, you agree to connect your wallet to the Kaboom game.`;
             `;
             document.head.insertAdjacentHTML('beforeend', css);
         }
+    }
+
+    // Update wallet selector if it's currently shown (for late-detected wallets)
+    updateWalletSelector() {
+        const existingModal = document.getElementById('walletSelectorModal');
+        if (existingModal) {
+            console.log('🔄 Updating wallet selector with newly detected wallets...');
+            
+            // Filter to only show the 3 requested wallets: Phantom, Solflare, Backpack
+            const priorityWallets = ['phantom', 'solflare', 'backpack'];
+            const allAvailableWallets = this.getAvailableWallets();
+            const availableWallets = allAvailableWallets.filter(wallet => 
+                priorityWallets.includes(wallet.key)
+            );
+            
+            // Update the wallet list in the existing modal
+            const walletList = existingModal.querySelector('.wallet-list');
+            if (walletList) {
+                walletList.innerHTML = availableWallets.map(wallet => `
+                    <div class="wallet-option" onclick="window.walletConnection.connectWallet('${wallet.key}'); this.closest('.wallet-selector-modal').remove();">
+                        <div class="wallet-icon">${wallet.icon}</div>
+                        <div class="wallet-info">
+                            <div class="wallet-name">${wallet.name}</div>
+                            <div class="wallet-description">${wallet.description}</div>
+                        </div>
+                        <div class="wallet-arrow">→</div>
+                    </div>
+                `).join('');
+                
+                console.log('✅ Wallet selector updated with', availableWallets.length, 'priority wallets');
+            }
+        }
+    }
+
+    // Manual Solflare detection function for debugging
+    debugSolflareDetection() {
+        console.log('📜 === SOLFLARE DEBUG DETECTION ===' );
+        
+        // Check all possible global objects
+        const objects = [
+            'window.solflare',
+            'window.solana', 
+            'window.solflareWallet',
+            'window.solanaSolflare',
+            'window.Solflare',
+            'window.SolflareWallet'
+        ];
+        
+        objects.forEach(objPath => {
+            const obj = eval(objPath);
+            console.log(`${objPath}:`, obj);
+            if (obj) {
+                console.log(`  - Properties:`, Object.keys(obj));
+                console.log(`  - isSolflare:`, obj.isSolflare);
+                console.log(`  - name:`, obj.name);
+                console.log(`  - provider:`, obj.provider);
+            }
+        });
+        
+        // Check for script tags
+        const scripts = document.querySelectorAll('script');
+        const solflareScripts = Array.from(scripts).filter(s => 
+            s.src && (s.src.includes('solflare') || s.src.includes('Solflare'))
+        );
+        console.log('Solflare scripts found:', solflareScripts.map(s => s.src));
+        
+        // Force re-check Solflare
+        const result = this.supportedWallets.solflare.check();
+        console.log('Final Solflare check result:', result);
+        
+        return result;
     }
 
     async disconnectWallet() {
@@ -906,6 +1229,52 @@ By signing this message, you agree to connect your wallet to the Kaboom game.`;
         }
     }
 }
+
+// Global debug functions for Solflare detection
+window.debugSolflare = function() {
+    if (window.walletConnection) {
+        return window.walletConnection.debugSolflareDetection();
+    } else {
+        console.log('❌ WalletConnection not initialized yet');
+        return false;
+    }
+};
+
+window.checkAllWallets = function() {
+    console.log('🔍 Checking all wallet types...');
+    
+    const wallets = {
+        'Phantom': window.solana && window.solana.isPhantom,
+        'Solflare': (window.solflare && window.solflare.isSolflare) || (window.solana && window.solana.isSolflare),
+        'Backpack': window.backpack && window.backpack.isBackpack,
+        'Slope': window.slope && window.slope.isSlope,
+        'Coinbase': window.coinbaseSolana && window.coinbaseSolana.isCoinbaseWallet
+    };
+    
+    console.table(wallets);
+    
+    if (window.walletConnection) {
+        const available = window.walletConnection.getAvailableWallets();
+        console.log('Available wallets:', available.map(w => w.name));
+    }
+    
+    return wallets;
+};
+
+window.forceSolflareDetection = function() {
+    console.log('🔄 Forcing Solflare detection...');
+    
+    // Try to refresh wallet list
+    if (window.walletConnection) {
+        window.walletConnection.updateWalletSelector();
+        const available = window.walletConnection.getAvailableWallets();
+        const hasSolflare = available.some(w => w.key === 'solflare');
+        console.log('Solflare found after refresh:', hasSolflare);
+        return hasSolflare;
+    }
+    
+    return false;
+};
 
 // Export for use in other modules
 window.WalletConnection = WalletConnection;

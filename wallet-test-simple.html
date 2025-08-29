@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Test - Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #87CEEB, #B0E0E6);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            min-width: 400px;
+        }
+        .wallet-option {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f0f8ff;
+            border: 2px solid #4682B4;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .wallet-option:hover {
+            background: #e0f6ff;
+            transform: translateY(-2px);
+        }
+        .wallet-icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 15px;
+        }
+        .wallet-info {
+            flex: 1;
+            text-align: left;
+        }
+        .wallet-name {
+            font-weight: bold;
+            color: #4682B4;
+            font-size: 18px;
+        }
+        .wallet-description {
+            color: #666;
+            font-size: 14px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f0f0f0;
+            min-height: 50px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2>🔗 Wallet Connection Test</h2>
+        <p>Click on a wallet to test connection:</p>
+        
+        <div class="wallet-option" onclick="testWallet('phantom')">
+            <img src="Sprites/emojis/phantom.png" alt="Phantom" class="wallet-icon">
+            <div class="wallet-info">
+                <div class="wallet-name">Phantom</div>
+                <div class="wallet-description">Most popular Solana wallet</div>
+            </div>
+        </div>
+        
+        <div class="wallet-option" onclick="testWallet('solflare')">
+            <img src="Sprites/emojis/solflare.png" alt="Solflare" class="wallet-icon">
+            <div class="wallet-info">
+                <div class="wallet-name">Solflare</div>
+                <div class="wallet-description">Professional Solana wallet</div>
+            </div>
+        </div>
+        
+        <div class="wallet-option" onclick="testWallet('backpack')">
+            <img src="Sprites/emojis/backpack.png" alt="Backpack" class="wallet-icon">
+            <div class="wallet-info">
+                <div class="wallet-name">Backpack</div>
+                <div class="wallet-description">Developer-friendly wallet</div>
+            </div>
+        </div>
+        
+        <div id="result" class="result">
+            Select a wallet to test connection...
+        </div>
+        
+        <hr style="margin: 20px 0;">
+        
+        <button onclick="checkAllWallets()" style="padding: 10px 20px; background: #4682B4; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            🔍 Check All Wallets
+        </button>
+        
+        <button onclick="location.href='/'" style="padding: 10px 20px; background: #87CEEB; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+            🎮 Back to Game
+        </button>
+    </div>
+
+    <script>
+        function testWallet(walletType) {
+            const result = document.getElementById('result');
+            result.innerHTML = `<strong>Testing ${walletType}...</strong>`;
+            result.className = 'result';
+            
+            setTimeout(() => {
+                try {
+                    let detected = false;
+                    let walletObj = null;
+                    
+                    switch(walletType) {
+                        case 'phantom':
+                            detected = window.solana && window.solana.isPhantom;
+                            walletObj = window.solana;
+                            break;
+                        case 'solflare':
+                            // Check multiple ways Solflare can be detected
+                            detected = (window.solflare && window.solflare.isSolflare) || 
+                                      (window.solana && window.solana.isSolflare) ||
+                                      (window.solflareWallet && window.solflareWallet.isSolflare);
+                            walletObj = window.solflare || (window.solana && window.solana.isSolflare ? window.solana : null);
+                            break;
+                        case 'backpack':
+                            detected = window.backpack && window.backpack.isBackpack;
+                            walletObj = window.backpack;
+                            break;
+                    }
+                    
+                    if (detected) {
+                        result.innerHTML = `
+                            <strong>✅ ${walletType.toUpperCase()} DETECTED!</strong><br>
+                            Wallet object available: ${walletObj ? 'Yes' : 'No'}<br>
+                            Has connect method: ${walletObj && walletObj.connect ? 'Yes' : 'No'}<br>
+                            Already connected: ${walletObj && walletObj.isConnected ? 'Yes' : 'No'}
+                        `;
+                        result.className = 'result success';
+                        
+                        // Try to connect
+                        if (walletObj && walletObj.connect) {
+                            result.innerHTML += '<br><br>Attempting connection...';
+                            walletObj.connect()
+                                .then(response => {
+                                    if (response && response.publicKey) {
+                                        result.innerHTML += `<br>✅ Connected! Public Key: ${response.publicKey.toString().slice(0, 8)}...`;
+                                    } else {
+                                        result.innerHTML += '<br>⚠️ Connected but no public key received';
+                                    }
+                                })
+                                .catch(error => {
+                                    result.innerHTML += `<br>❌ Connection failed: ${error.message}`;
+                                });
+                        }
+                    } else {
+                        result.innerHTML = `<strong>❌ ${walletType.toUpperCase()} NOT DETECTED</strong><br>Please install ${walletType} wallet extension`;
+                        result.className = 'result error';
+                    }
+                } catch (error) {
+                    result.innerHTML = `<strong>❌ Error testing ${walletType}</strong><br>${error.message}`;
+                    result.className = 'result error';
+                }
+            }, 500);
+        }
+        
+        function checkAllWallets() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<strong>🔍 Checking all wallets...</strong>';
+            result.className = 'result';
+            
+            setTimeout(() => {
+                const wallets = {
+                    'Phantom': window.solana && window.solana.isPhantom,
+                    'Solflare': (window.solflare && window.solflare.isSolflare) || (window.solana && window.solana.isSolflare),
+                    'Backpack': window.backpack && window.backpack.isBackpack,
+                    'Slope': window.slope && window.slope.isSlope
+                };
+                
+                let html = '<strong>Wallet Detection Results:</strong><br><br>';
+                for (const [name, detected] of Object.entries(wallets)) {
+                    html += `${detected ? '✅' : '❌'} ${name}: ${detected ? 'DETECTED' : 'Not found'}<br>`;
+                }
+                
+                html += '<br><strong>Global Objects:</strong><br>';
+                html += `window.solana: ${window.solana ? 'Present' : 'Missing'}<br>`;
+                html += `window.solflare: ${window.solflare ? 'Present' : 'Missing'}<br>`;
+                html += `window.backpack: ${window.backpack ? 'Present' : 'Missing'}<br>`;
+                html += `window.slope: ${window.slope ? 'Present' : 'Missing'}<br>`;
+                
+                if (window.solana) {
+                    html += '<br><strong>window.solana properties:</strong><br>';
+                    html += `isPhantom: ${window.solana.isPhantom}<br>`;
+                    html += `isSolflare: ${window.solana.isSolflare}<br>`;
+                    html += `isConnected: ${window.solana.isConnected}<br>`;
+                }
+                
+                result.innerHTML = html;
+                result.className = 'result';
+            }, 500);
+        }
+        
+        console.log('🧪 Wallet test page loaded');
+        console.log('Available wallets check:');
+        console.log('- Phantom:', window.solana && window.solana.isPhantom);
+        console.log('- Solflare:', (window.solflare && window.solflare.isSolflare) || (window.solana && window.solana.isSolflare));
+        console.log('- Backpack:', window.backpack && window.backpack.isBackpack);
+    </script>
+</body>
+</html>
