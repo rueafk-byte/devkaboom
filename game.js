@@ -929,54 +929,52 @@ class PirateBombGame {
 		
 		console.log('Final player assets check:', Object.keys(this.assets.player).map(key => `${key}: ${this.assets.player[key].length} frames`));
 
-		// Ensure enemy sprites exist
+		// Load actual enemy sprites from Sprites folder
 		if (!this.assets.enemies) {
 			this.assets.enemies = {};
 		}
-		if (!this.assets.enemies['Bald Pirate']) {
-			this.assets.enemies['Bald Pirate'] = {};
-		}
 		
-		// Create fallback enemy sprites with better designs
-		const enemySprites = ['1-Idle', '2-Run', '4-Jump', '5-Fall', '7-Attack', '8-Hit', '9-Hit', '10-Dead Hit', '11-Dead Ground', '12-Hit', '13-Dead Hit', '14-Dead Ground'];
-		enemySprites.forEach(anim => {
-			if (!this.assets.enemies['Bald Pirate'][anim] || this.assets.enemies['Bald Pirate'][anim].length === 0) {
-				this.assets.enemies['Bald Pirate'][anim] = [createEnemySprite('#FF0000', 64)]; // Red for enemies
+		// Load real enemy sprites with proper animations
+		const enemyConfigs = [
+			{ name: 'Bald Pirate', folder: '2-Enemy-Bald Pirate', color: '#FF0000' },
+			{ name: 'Cucumber', folder: '3-Enemy-Cucumber', color: '#32CD32' },
+			{ name: 'Big Guy', folder: '4-Enemy-Big Guy', color: '#8B4513' },
+			{ name: 'Captain', folder: '2-Enemy-Bald Pirate', color: '#4169E1' },
+			{ name: 'Whale', folder: '3-Enemy-Cucumber', color: '#2F4F4F' }
+		];
+		
+		for (const config of enemyConfigs) {
+			if (!this.assets.enemies[config.name]) {
+				this.assets.enemies[config.name] = {};
 			}
-		});
-
-		// Add other enemy types with different colors and designs
-		const otherEnemies = ['Cucumber', 'Big Guy', 'Captain', 'Whale'];
-		otherEnemies.forEach(enemyName => {
-			if (!this.assets.enemies[enemyName]) {
-				this.assets.enemies[enemyName] = {};
-			}
-			enemySprites.forEach(anim => {
-				if (!this.assets.enemies[enemyName][anim] || this.assets.enemies[enemyName][anim].length === 0) {
-					let color = '#FF0000';
-					let size = 64;
-					switch(enemyName) {
-						case 'Cucumber': 
-							color = '#32CD32'; 
-							size = 56; // Smaller
-							break;
-						case 'Big Guy': 
-							color = '#8B4513'; 
-							size = 72; // Bigger
-							break;
-						case 'Captain': 
-							color = '#4169E1'; 
-							size = 64;
-							break;
-						case 'Whale': 
-							color = '#4682B4'; 
-							size = 80; // Biggest
-							break;
+			
+			// Try to load real sprites, fallback to generated ones
+			const essentialAnims = ['1-Idle', '2-Run', '7-Attack'];
+			for (const anim of essentialAnims) {
+				try {
+					// Attempt to load real sprites
+					const frames = await this.loadFrames(`Sprites/${config.folder}/${anim}`, 4);
+					if (frames && frames.length > 0) {
+						this.assets.enemies[config.name][anim] = frames;
+						console.log(`✅ Loaded real ${config.name} ${anim}: ${frames.length} frames`);
+					} else {
+						throw new Error('No frames loaded');
 					}
-					this.assets.enemies[enemyName][anim] = [createEnemySprite(color, size)];
+				} catch (error) {
+					// Fallback to generated sprite
+					console.log(`⚠️ Using fallback for ${config.name} ${anim}`);
+					this.assets.enemies[config.name][anim] = [createEnemySprite(config.color, 64)];
 				}
-			});
-		});
+			}
+			
+			// Fill in other animations with copies of idle
+			const allAnims = ['4-Jump', '5-Fall', '8-Hit', '9-Hit', '10-Dead Hit', '11-Dead Ground', '12-Hit', '13-Dead Hit', '14-Dead Ground'];
+			for (const anim of allAnims) {
+				if (!this.assets.enemies[config.name][anim]) {
+					this.assets.enemies[config.name][anim] = this.assets.enemies[config.name]['1-Idle'] || [createEnemySprite(config.color, 64)];
+				}
+			}
+		}
 
 		// Ensure object sprites exist
 		if (!this.assets.objects) {
