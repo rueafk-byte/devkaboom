@@ -2010,30 +2010,41 @@
                             
                             // Create wallet connection functions first
                             window.connectPhantom = async function() {
-                                console.log('👻 Attempting Phantom connection with fresh authentication...');
+                                console.log('👻 Attempting Phantom connection with signature verification...');
                                 try {
                                     if (window.solana && window.solana.isPhantom) {
-                                        // Force fresh connection - never use cached/trusted connections
-                                        console.log('🔒 Requesting fresh wallet authentication...');
-                                        
-                                        // Disconnect first if already connected to force fresh auth
-                                        if (window.solana.isConnected) {
-                                            console.log('🔄 Disconnecting existing connection for fresh auth...');
-                                            await window.solana.disconnect();
-                                        }
-                                        
-                                        // Always request fresh connection with user approval
+                                        // Step 1: Connect to wallet
+                                        console.log('🔗 Requesting wallet connection...');
                                         const response = await window.solana.connect({ 
-                                            onlyIfTrusted: false  // Always show approval popup
+                                            onlyIfTrusted: false
                                         });
                                         
-                                        console.log('✅ Phantom connected with fresh authentication:', response.publicKey.toString());
+                                        if (!response || !response.publicKey) {
+                                            throw new Error('Failed to connect to Phantom wallet');
+                                        }
+                                        
+                                        console.log('✅ Phantom connected:', response.publicKey.toString());
+                                        
+                                        // Step 2: Request signature for authentication
+                                        console.log('🔐 Requesting signature for authentication...');
+                                        const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${response.publicKey.toString()}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
+                                        const encodedMessage = new TextEncoder().encode(message);
+                                        
+                                        const signatureResponse = await window.solana.signMessage(encodedMessage, 'utf8');
+                                        
+                                        if (!signatureResponse || !signatureResponse.signature) {
+                                            throw new Error('Signature verification failed');
+                                        }
+                                        
+                                        console.log('✅ Signature verified successfully!');
+                                        console.log('🔑 Signature:', signatureResponse.signature);
                                         
                                         // Update the wallet connection system
                                         if (window.walletConnection) {
                                             window.walletConnection.isConnected = true;
                                             window.walletConnection.publicKey = response.publicKey;
                                             window.walletConnection.selectedWallet = 'phantom';
+                                            window.walletConnection.signature = signatureResponse.signature;
                                             if (typeof window.walletConnection.updateConnectionUI === 'function') {
                                                 window.walletConnection.updateConnectionUI();
                                             }
@@ -2046,7 +2057,7 @@
                                         const startButton = document.getElementById('startButton');
                                         
                                         if (walletStatus) {
-                                            walletStatus.textContent = `Connected: ${response.publicKey.toString().substring(0, 8)}... (Phantom)`;
+                                            walletStatus.textContent = `Authenticated: ${response.publicKey.toString().substring(0, 8)}... (Phantom)`;
                                             walletStatus.className = 'wallet-status connected';
                                         }
                                         if (connectBtn) connectBtn.style.display = 'none';
@@ -2057,16 +2068,18 @@
                                             startButton.style.cursor = 'pointer';
                                         }
                                         
-                                        alert('Phantom wallet connected successfully with fresh authentication!');
+                                        alert('Phantom wallet authenticated successfully with signature!');
                                     } else {
                                         alert('Phantom wallet not found! Please install Phantom extension.');
                                     }
                                 } catch (error) {
-                                    console.error('❌ Phantom connection failed:', error);
+                                    console.error('❌ Phantom authentication failed:', error);
                                     if (error.code === 4001 || error.message.includes('User rejected')) {
-                                        alert('Phantom connection was cancelled by user.');
+                                        alert('Phantom authentication was cancelled by user.');
+                                    } else if (error.message.includes('signMessage')) {
+                                        alert('Signature request failed. Please try again and approve the signature request.');
                                     } else {
-                                        alert('Phantom connection failed: ' + error.message);
+                                        alert('Phantom authentication failed: ' + error.message);
                                     }
                                 }
                             };
@@ -2203,6 +2216,41 @@
                                     console.log('🔍 Wallet Object:', walletObj);
                                     console.log('📋 Connection Method:', connectionMethod);
                                     
+                                    // Step 2: Request signature for authentication
+                                    console.log('🔐 Requesting signature for authentication...');
+                                    const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${publicKeyString}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
+                                    const encodedMessage = new TextEncoder().encode(message);
+                                    
+                                    let signatureResponse;
+                                    try {
+                                        if (walletObj.signMessage) {
+                                            signatureResponse = await walletObj.signMessage(encodedMessage, 'utf8');
+                                        } else if (walletObj.signTransaction) {
+                                            // Fallback for wallets that don't support signMessage
+                                            console.log('⚠️ Using transaction signing as fallback...');
+                                            throw new Error('Message signing not supported by this wallet version');
+                                        } else {
+                                            throw new Error('Wallet does not support message signing');
+                                        }
+                                        
+                                        if (!signatureResponse || !signatureResponse.signature) {
+                                            throw new Error('Signature verification failed');
+                                        }
+                                        
+                                        console.log('✅ Solflare signature verified successfully!');
+                                        console.log('🔑 Signature:', signatureResponse.signature);
+                                        
+                                    } catch (signError) {
+                                        console.error('❌ Signature request failed:', signError);
+                                        if (signError.code === 4001 || signError.message.includes('User rejected')) {
+                                            alert('Signature request was cancelled by user.');
+                                            return;
+                                        } else {
+                                            alert('Signature verification failed. Authentication required for security.\n\nError: ' + signError.message);
+                                            return;
+                                        }
+                                    }
+                                    
                                     // Verify it's actually Solflare (not Phantom hijacking)
                                     if (walletObj.isPhantom && !walletObj.isSolflare) {
                                         console.warn('⚠️ Warning: Connected to Phantom instead of Solflare!');
@@ -2217,6 +2265,7 @@
                                         window.walletConnection.isConnected = true;
                                         window.walletConnection.publicKey = response.publicKey;
                                         window.walletConnection.selectedWallet = 'solflare';
+                                        window.walletConnection.signature = signatureResponse.signature;
                                         if (typeof window.walletConnection.updateConnectionUI === 'function') {
                                             window.walletConnection.updateConnectionUI();
                                         }
@@ -2229,7 +2278,7 @@
                                     const startButton = document.getElementById('startButton');
                                     
                                     if (walletStatus) {
-                                        walletStatus.textContent = `Connected: ${publicKeyString.substring(0, 8)}... (Solflare)`;
+                                        walletStatus.textContent = `Authenticated: ${publicKeyString.substring(0, 8)}... (Solflare)`;
                                         walletStatus.className = 'wallet-status connected';
                                     }
                                     if (connectBtn) connectBtn.style.display = 'none';
@@ -2240,7 +2289,7 @@
                                         startButton.style.cursor = 'pointer';
                                     }
                                     
-                                    alert(`Solflare wallet connected successfully!\nMethod: ${connectionMethod}\nAddress: ${publicKeyString.substring(0, 8)}...`);
+                                    alert(`Solflare wallet authenticated successfully with signature!\nMethod: ${connectionMethod}\nAddress: ${publicKeyString.substring(0, 8)}...`);
                                     
                                 } catch (error) {
                                     console.error('❌ Solflare connection failed:', error);
@@ -2261,31 +2310,58 @@
                             };
                             
                             window.connectBackpack = async function() {
-                                console.log('🎒 Attempting Backpack connection with fresh authentication...');
+                                console.log('🎒 Attempting Backpack connection with signature verification...');
                                 try {
                                     if (window.backpack && window.backpack.connect) {
-                                        // Force fresh connection - disconnect first if connected
-                                        if (window.backpack.isConnected) {
-                                            console.log('🔄 Disconnecting existing Backpack connection for fresh auth...');
-                                            try {
-                                                await window.backpack.disconnect();
-                                            } catch (e) {
-                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
-                                            }
-                                        }
-                                        
-                                        // Always request fresh connection with user approval
+                                        // Step 1: Connect to wallet
+                                        console.log('🔗 Requesting wallet connection...');
                                         const response = await window.backpack.connect({ 
-                                            onlyIfTrusted: false  // Always show approval popup
+                                            onlyIfTrusted: false
                                         });
                                         
-                                        console.log('✅ Backpack connected with fresh authentication:', response.publicKey.toString());
+                                        if (!response || !response.publicKey) {
+                                            throw new Error('Failed to connect to Backpack wallet');
+                                        }
+                                        
+                                        console.log('✅ Backpack connected:', response.publicKey.toString());
+                                        
+                                        // Step 2: Request signature for authentication
+                                        console.log('🔐 Requesting signature for authentication...');
+                                        const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${response.publicKey.toString()}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
+                                        const encodedMessage = new TextEncoder().encode(message);
+                                        
+                                        let signatureResponse;
+                                        try {
+                                            if (window.backpack.signMessage) {
+                                                signatureResponse = await window.backpack.signMessage(encodedMessage, 'utf8');
+                                            } else {
+                                                throw new Error('Backpack wallet does not support message signing');
+                                            }
+                                            
+                                            if (!signatureResponse || !signatureResponse.signature) {
+                                                throw new Error('Signature verification failed');
+                                            }
+                                            
+                                            console.log('✅ Backpack signature verified successfully!');
+                                            console.log('🔑 Signature:', signatureResponse.signature);
+                                            
+                                        } catch (signError) {
+                                            console.error('❌ Signature request failed:', signError);
+                                            if (signError.code === 4001 || signError.message.includes('User rejected')) {
+                                                alert('Signature request was cancelled by user.');
+                                                return;
+                                            } else {
+                                                alert('Signature verification failed. Authentication required for security.\n\nError: ' + signError.message);
+                                                return;
+                                            }
+                                        }
                                         
                                         // Update the wallet connection system
                                         if (window.walletConnection) {
                                             window.walletConnection.isConnected = true;
                                             window.walletConnection.publicKey = response.publicKey;
                                             window.walletConnection.selectedWallet = 'backpack';
+                                            window.walletConnection.signature = signatureResponse.signature;
                                             if (typeof window.walletConnection.updateConnectionUI === 'function') {
                                                 window.walletConnection.updateConnectionUI();
                                             }
@@ -2298,7 +2374,7 @@
                                         const startButton = document.getElementById('startButton');
                                         
                                         if (walletStatus) {
-                                            walletStatus.textContent = `Connected: ${response.publicKey.toString().substring(0, 8)}... (Backpack)`;
+                                            walletStatus.textContent = `Authenticated: ${response.publicKey.toString().substring(0, 8)}... (Backpack)`;
                                             walletStatus.className = 'wallet-status connected';
                                         }
                                         if (connectBtn) connectBtn.style.display = 'none';
@@ -2309,16 +2385,18 @@
                                             startButton.style.cursor = 'pointer';
                                         }
                                         
-                                        alert('Backpack wallet connected successfully with fresh authentication!');
+                                        alert('Backpack wallet authenticated successfully with signature!');
                                     } else {
                                         alert('Backpack wallet not found! Please install Backpack extension.');
                                     }
                                 } catch (error) {
-                                    console.error('❌ Backpack connection failed:', error);
+                                    console.error('❌ Backpack authentication failed:', error);
                                     if (error.code === 4001 || error.message.includes('User rejected')) {
-                                        alert('Backpack connection was cancelled by user.');
+                                        alert('Backpack authentication was cancelled by user.');
+                                    } else if (error.message.includes('signMessage')) {
+                                        alert('Signature request failed. Please try again and approve the signature request.');
                                     } else {
-                                        alert('Backpack connection failed: ' + error.message);
+                                        alert('Backpack authentication failed: ' + error.message);
                                     }
                                 }
                             };
@@ -2348,7 +2426,7 @@
                                     ">
                                         <h2 style="color: #333; margin-bottom: 10px;">🔗 Choose Your Wallet</h2>
                                         <p style="color: #666; font-size: 14px; margin-bottom: 20px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
-                                            🔒 <strong>Secure Connection:</strong> You will be asked to approve this connection in your wallet for security.
+                                            🔐 <strong>Security Authentication:</strong> You will be asked to sign a message to verify wallet ownership.
                                         </p>
                                         
                                         <div onclick="window.connectPhantom(); document.getElementById('walletSelectorModal').remove();" style="
