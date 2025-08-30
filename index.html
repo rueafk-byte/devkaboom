@@ -1990,7 +1990,7 @@
                     console.log('🔍 Setting up wallet button:', connectButton);
                     console.log('🔍 Current walletConnection:', window.walletConnection);
                     
-                    if (connectButton) {
+                    if (connectButton && window.walletConnection) {
                         // Remove any existing listeners
                         const newButton = connectButton.cloneNode(true);
                         connectButton.parentNode.replaceChild(newButton, connectButton);
@@ -2000,103 +2000,15 @@
                             event.stopPropagation();
                             console.log('🔥 Connect Wallet button clicked!');
                             
-                            // Remove any existing modals first
-                            const existingModal = document.getElementById('walletSelectorModal');
-                            if (existingModal) {
-                                existingModal.remove();
-                            }
-                            
-                            // Create wallet connection functions first
-                            window.connectPhantom = async function() {
-                                console.log('👻 Attempting Phantom connection with signature verification...');
-                                try {
-                                    if (window.solana && window.solana.isPhantom) {
-                                        // Step 1: Connect to wallet
-                                        console.log('🔗 Requesting wallet connection...');
-                                        const response = await window.solana.connect({ 
-                                            onlyIfTrusted: false
-                                        });
-                                        
-                                        if (!response || !response.publicKey) {
-                                            throw new Error('Failed to connect to Phantom wallet');
-                                        }
-                                        
-                                        console.log('✅ Phantom connected:', response.publicKey.toString());
-                                        
-                                        // Step 2: Request signature for authentication
-                                        console.log('🔐 Requesting signature for authentication...');
-                                        const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${response.publicKey.toString()}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
-                                        const encodedMessage = new TextEncoder().encode(message);
-                                        
-                                        const signatureResponse = await window.solana.signMessage(encodedMessage, 'utf8');
-                                        
-                                        if (!signatureResponse || !signatureResponse.signature) {
-                                            throw new Error('Signature verification failed');
-                                        }
-                                        
-                                        console.log('✅ Signature verified successfully!');
-                                        console.log('🔑 Signature:', signatureResponse.signature);
-                                        
-                                        // Update the wallet connection system
-                                        if (window.walletConnection) {
-                                            window.walletConnection.isConnected = true;
-                                            window.walletConnection.publicKey = response.publicKey;
-                                            window.walletConnection.selectedWallet = 'phantom';
-                                            window.walletConnection.signature = signatureResponse.signature;
-                                            if (typeof window.walletConnection.updateConnectionUI === 'function') {
-                                                window.walletConnection.updateConnectionUI();
-                                            }
-                                        }
-                                        
-                                        // Update UI elements
-                                        const walletStatus = document.getElementById('walletStatus');
-                                        const connectBtn = document.getElementById('connectWalletBtn');
-                                        const startButtonContainer = document.getElementById('startButtonContainer');
-                                        const startButton = document.getElementById('startButton');
-                                        
-                                        if (walletStatus) {
-                                            walletStatus.textContent = `Authenticated: ${response.publicKey.toString().substring(0, 8)}... (Phantom)`;
-                                            walletStatus.className = 'wallet-status connected';
-                                        }
-                                        if (connectBtn) connectBtn.style.display = 'none';
-                                        if (startButtonContainer) startButtonContainer.style.display = 'block';
-                                        if (startButton) {
-                                            startButton.disabled = false;
-                                            startButton.style.opacity = '1';
-                                            startButton.style.cursor = 'pointer';
-                                        }
-                                        
-                                        alert('Phantom wallet authenticated successfully with signature!');
-                                    } else {
-                                        alert('Phantom wallet not found! Please install Phantom extension.');
-                                    }
-                                } catch (error) {
-                                    console.error('❌ Phantom authentication failed:', error);
-                                    if (error.code === 4001 || error.message.includes('User rejected')) {
-                                        alert('Phantom authentication was cancelled by user.');
-                                    } else if (error.message.includes('signMessage')) {
-                                        alert('Signature request failed. Please try again and approve the signature request.');
-                                    } else {
-                                        alert('Phantom authentication failed: ' + error.message);
-                                    }
-                                }
-                            };
-                            
-                            // Removed conflicting wallet connection functions - using main wallet-connection.js instead
-                                            'window.solflareWallet': !!window.solflareWallet,
-                                            'window.solana': !!window.solana,
-                                            'window.solana.isSolflare': window.solana ? window.solana.isSolflare : false,
-                                            'window.solana.isPhantom': window.solana ? window.solana.isPhantom : false
-                                        });
-                                        alert('Solflare wallet not found!\n\nPlease:\n1. Install Solflare extension\n2. Refresh this page\n3. Try again');
-                                        return;
-                                    }
-                                    
-                                    console.log(`🔗 Connection attempt via: ${connectionMethod}`);
-                                    console.log('📦 Raw response:', response);
-                                    
-                                    // Validate response
-                                    if (!response) {
+                            // Use the main wallet connection system
+                            window.walletConnection.showWalletSelector();
+                        });
+                        
+                        console.log('✅ Wallet button click handler attached');
+                    } else {
+                        console.error('❌ Connect wallet button or walletConnection not found');
+                    }
+                }
                                         throw new Error('No response from wallet');
                                     }
                                     
@@ -2212,96 +2124,6 @@
                                     }
                                 }
                             };
-                            
-                            // Removed conflicting Backpack connection function - using main wallet-connection.js instead
-                            
-                            // Create and show modal
-                            const modalHTML = `
-                                <div id="walletSelectorModal" style="
-                                    position: fixed;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100vw;
-                                    height: 100vh;
-                                    background: rgba(0, 0, 0, 0.8);
-                                    z-index: 999999;
-                                    display: flex;
-                                    justify-content: center;
-                                    align-items: center;
-                                ">
-                                    <div style="
-                                        background: white;
-                                        padding: 30px;
-                                        border-radius: 15px;
-                                        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-                                        max-width: 400px;
-                                        width: 90%;
-                                        text-align: center;
-                                    ">
-                                        <h2 style="color: #333; margin-bottom: 10px;">🔗 Choose Your Wallet</h2>
-                                        <p style="color: #666; font-size: 14px; margin-bottom: 20px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
-                                            🔐 <strong>Security Authentication:</strong> You will be asked to sign a message to verify wallet ownership.
-                                        </p>
-                                        
-                                        <div onclick="window.walletConnection.connectWallet('phantom'); document.getElementById('walletSelectorModal').remove();" style="
-                                            padding: 15px; margin: 10px 0; background: #f0f8ff;
-                                            border: 2px solid #4682B4; border-radius: 10px;
-                                            cursor: pointer; display: flex; align-items: center;
-                                            transition: all 0.3s ease;
-                                        " onmouseover="this.style.background='#e0f0ff'" onmouseout="this.style.background='#f0f8ff'">
-                                            <img src="Sprites/emojis/phantom.png" alt="Phantom" style="width: 40px; height: 40px; margin-right: 15px;">
-                                            <div style="flex: 1; text-align: left;">
-                                                <div style="font-weight: bold; color: #4682B4; font-size: 18px;">Phantom</div>
-                                                <div style="color: #666; font-size: 14px;">Most popular Solana wallet</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div onclick="window.walletConnection.connectWallet('solflare'); document.getElementById('walletSelectorModal').remove();" style="
-                                            padding: 15px; margin: 10px 0; background: #f0f8ff;
-                                            border: 2px solid #4682B4; border-radius: 10px;
-                                            cursor: pointer; display: flex; align-items: center;
-                                            transition: all 0.3s ease;
-                                        " onmouseover="this.style.background='#e0f0ff'" onmouseout="this.style.background='#f0f8ff'">
-                                            <img src="Sprites/emojis/solflare.png" alt="Solflare" style="width: 40px; height: 40px; margin-right: 15px;">
-                                            <div style="flex: 1; text-align: left;">
-                                                <div style="font-weight: bold; color: #4682B4; font-size: 18px;">Solflare</div>
-                                                <div style="color: #666; font-size: 14px;">Professional Solana wallet</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div onclick="window.walletConnection.connectWallet('backpack'); document.getElementById('walletSelectorModal').remove();" style="
-                                            padding: 15px; margin: 10px 0; background: #f0f8ff;
-                                            border: 2px solid #4682B4; border-radius: 10px;
-                                            cursor: pointer; display: flex; align-items: center;
-                                            transition: all 0.3s ease;
-                                        " onmouseover="this.style.background='#e0f0ff'" onmouseout="this.style.background='#f0f8ff'">
-                                            <img src="Sprites/emojis/backpack.png" alt="Backpack" style="width: 40px; height: 40px; margin-right: 15px;">
-                                            <div style="flex: 1; text-align: left;">
-                                                <div style="font-weight: bold; color: #4682B4; font-size: 18px;">Backpack</div>
-                                                <div style="color: #666; font-size: 14px;">Developer-friendly wallet</div>
-                                            </div>
-                                        </div>
-                                        
-                                        <button onclick="document.getElementById('walletSelectorModal').remove();" style="
-                                            margin-top: 20px; padding: 10px 20px;
-                                            background: #dc3545; color: white;
-                                            border: none; border-radius: 5px; cursor: pointer;
-                                            font-size: 14px;
-                                        " onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">Cancel</button>
-                                    </div>
-                                </div>
-                            `;
-                            
-                            // Add to document body
-                            document.body.insertAdjacentHTML('beforeend', modalHTML);
-                            console.log('✅ Wallet selector modal created and displayed');
-                        });
-                        
-                        console.log('✅ Wallet button click handler attached');
-                    } else {
-                        console.error('❌ Connect wallet button not found');
-                    }
-                }
                 
                 // Try setting up immediately and also with delays
                 setupWalletButton();
