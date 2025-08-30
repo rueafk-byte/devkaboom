@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Connection Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #87CEEB 0%, #B0E0E6 50%, #E0F6FF 100%);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #4682B4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #5a9fd4; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .wallet-item {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏴‍☠️ Wallet Connection Diagnostic Tool</h1>
+        
+        <div class="test-section info">
+            <h3>📋 System Information</h3>
+            <div id="systemInfo"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Wallet Detection</h3>
+            <button onclick="detectWallets()">Detect Available Wallets</button>
+            <div id="walletDetection"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔗 Direct Connection Test</h3>
+            <button onclick="testPhantomConnection()">Test Phantom Connection</button>
+            <button onclick="testSolflareConnection()">Test Solflare Connection</button>
+            <div id="connectionTest"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 Network Test</h3>
+            <button onclick="testSolanaConnection()">Test Solana Network</button>
+            <div id="networkTest"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Debug Log</h3>
+            <button onclick="clearLog()">Clear Log</button>
+            <div id="debugLog" class="log"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script>
+        // Logging function
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('debugLog');
+            const color = {
+                'info': '#17a2b8',
+                'success': '#28a745',
+                'error': '#dc3545',
+                'warning': '#ffc107'
+            }[type] || '#17a2b8';
+            
+            logElement.innerHTML += `<div style="color: ${color}; margin: 2px 0;">
+                [${timestamp}] ${message}
+            </div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('debugLog').innerHTML = '';
+        }
+
+        // System information
+        function showSystemInfo() {
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Platform': navigator.platform,
+                'Language': navigator.language,
+                'Online': navigator.onLine,
+                'Cookies Enabled': navigator.cookieEnabled,
+                'Local Storage': typeof(Storage) !== "undefined",
+                'Solana Web3.js': typeof solanaWeb3 !== 'undefined' ? 'Loaded' : 'Not Found'
+            };
+
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 5px; font-weight: bold;">${key}:</td>
+                    <td style="padding: 5px;">${value}</td>
+                </tr>`;
+            }
+            html += '</table>';
+            document.getElementById('systemInfo').innerHTML = html;
+        }
+
+        // Wallet detection
+        function detectWallets() {
+            log('🔍 Starting wallet detection...', 'info');
+            const detectionDiv = document.getElementById('walletDetection');
+            
+            const wallets = [
+                { name: 'Phantom', check: () => window.solana && window.solana.isPhantom, obj: 'window.solana' },
+                { name: 'Solflare', check: () => window.solflare && window.solflare.isSolflare, obj: 'window.solflare' },
+                { name: 'Slope', check: () => window.slope && window.slope.isSlope, obj: 'window.slope' },
+                { name: 'Backpack', check: () => window.backpack && window.backpack.isBackpack, obj: 'window.backpack' },
+                { name: 'Coinbase', check: () => window.coinbaseSolana && window.coinbaseSolana.isCoinbaseWallet, obj: 'window.coinbaseSolana' },
+                { name: 'Exodus', check: () => window.exodus && window.exodus.isExodus, obj: 'window.exodus' },
+                { name: 'Brave', check: () => window.braveSolana && window.braveSolana.isBraveWallet, obj: 'window.braveSolana' },
+                { name: 'Clover', check: () => window.cloverSolana && window.cloverSolana.isClover, obj: 'window.cloverSolana' }
+            ];
+
+            let html = '';
+            let foundWallets = 0;
+
+            wallets.forEach(wallet => {
+                const isAvailable = wallet.check();
+                const status = isAvailable ? 'success' : 'error';
+                const statusText = isAvailable ? '✅ Available' : '❌ Not Found';
+                
+                html += `<div class="wallet-item" style="background-color: ${isAvailable ? '#d4edda' : '#f8d7da'}">
+                    <span><strong>${wallet.name}</strong> (${wallet.obj})</span>
+                    <span>${statusText}</span>
+                </div>`;
+
+                if (isAvailable) {
+                    foundWallets++;
+                    log(`✅ ${wallet.name} wallet detected`, 'success');
+                } else {
+                    log(`❌ ${wallet.name} wallet not found`, 'error');
+                }
+            });
+
+            detectionDiv.innerHTML = html;
+            log(`🔍 Detection complete: ${foundWallets} wallet(s) found`, 'info');
+        }
+
+        // Test Phantom connection
+        async function testPhantomConnection() {
+            log('🔗 Testing Phantom wallet connection...', 'info');
+            const testDiv = document.getElementById('connectionTest');
+            
+            try {
+                if (!window.solana || !window.solana.isPhantom) {
+                    throw new Error('Phantom wallet not detected');
+                }
+
+                log('✅ Phantom wallet detected', 'success');
+                
+                // Test connection
+                const response = await window.solana.connect();
+                log(`✅ Phantom connected: ${response.publicKey.toString()}`, 'success');
+                
+                // Test signing
+                const message = new TextEncoder().encode('Test message for Kaboom game');
+                const signature = await window.solana.signMessage(message, 'utf8');
+                log('✅ Message signing successful', 'success');
+                
+                testDiv.innerHTML = `<div class="success">
+                    <h4>✅ Phantom Connection Successful</h4>
+                    <p><strong>Public Key:</strong> ${response.publicKey.toString()}</p>
+                    <p><strong>Signature:</strong> ${signature.signature.toString()}</p>
+                </div>`;
+                
+            } catch (error) {
+                log(`❌ Phantom connection failed: ${error.message}`, 'error');
+                testDiv.innerHTML = `<div class="error">
+                    <h4>❌ Phantom Connection Failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                </div>`;
+            }
+        }
+
+        // Test Solflare connection
+        async function testSolflareConnection() {
+            log('🔗 Testing Solflare wallet connection...', 'info');
+            const testDiv = document.getElementById('connectionTest');
+            
+            try {
+                if (!window.solflare && !window.solana?.isSolflare) {
+                    throw new Error('Solflare wallet not detected');
+                }
+
+                log('✅ Solflare wallet detected', 'success');
+                
+                const wallet = window.solflare || window.solana;
+                const response = await wallet.connect();
+                log(`✅ Solflare connected: ${response.publicKey.toString()}`, 'success');
+                
+                testDiv.innerHTML = `<div class="success">
+                    <h4>✅ Solflare Connection Successful</h4>
+                    <p><strong>Public Key:</strong> ${response.publicKey.toString()}</p>
+                </div>`;
+                
+            } catch (error) {
+                log(`❌ Solflare connection failed: ${error.message}`, 'error');
+                testDiv.innerHTML = `<div class="error">
+                    <h4>❌ Solflare Connection Failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                </div>`;
+            }
+        }
+
+        // Test Solana network connection
+        async function testSolanaConnection() {
+            log('🌐 Testing Solana network connection...', 'info');
+            const testDiv = document.getElementById('networkTest');
+            
+            try {
+                if (typeof solanaWeb3 === 'undefined') {
+                    throw new Error('Solana Web3.js not loaded');
+                }
+
+                const connection = new solanaWeb3.Connection('https://api.devnet.solana.com', 'confirmed');
+                const version = await connection.getVersion();
+                
+                log('✅ Solana network connection successful', 'success');
+                
+                testDiv.innerHTML = `<div class="success">
+                    <h4>✅ Solana Network Connection Successful</h4>
+                    <p><strong>Network:</strong> Devnet</p>
+                    <p><strong>Version:</strong> ${JSON.stringify(version)}</p>
+                </div>`;
+                
+            } catch (error) {
+                log(`❌ Solana network connection failed: ${error.message}`, 'error');
+                testDiv.innerHTML = `<div class="error">
+                    <h4>❌ Solana Network Connection Failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                </div>`;
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            showSystemInfo();
+            log('🚀 Wallet diagnostic tool loaded', 'info');
+            
+            // Auto-detect wallets
+            setTimeout(() => {
+                detectWallets();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Wallet Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f8ff;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4682B4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover { background: #5a9fd4; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏴‍☠️ Quick Wallet Connection Test</h1>
+        <p>This page will help diagnose wallet connection issues quickly.</p>
+        
+        <div>
+            <button onclick="checkWallets()">1. Check Installed Wallets</button>
+            <button onclick="testPhantom()" id="phantomBtn">2. Test Phantom</button>
+            <button onclick="testSolflare()" id="solflareBtn">3. Test Solflare</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <h3>🔧 Quick Fixes</h3>
+        <ul>
+            <li>Make sure you have Phantom wallet installed</li>
+            <li>Refresh the page after installing wallet</li>
+            <li>Check if wallet is unlocked</li>
+            <li>Try connecting in wallet settings first</li>
+        </ul>
+    </div>
+
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script>
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function checkWallets() {
+            clearResults();
+            addResult('🔍 Checking for installed wallets...', 'info');
+            
+            const wallets = {
+                'Phantom': () => window.solana && window.solana.isPhantom,
+                'Solflare': () => window.solflare && window.solflare.isSolflare,
+                'Slope': () => window.slope && window.slope.isSlope,
+                'Backpack': () => window.backpack && window.backpack.isBackpack
+            };
+            
+            let foundWallets = 0;
+            
+            for (const [name, check] of Object.entries(wallets)) {
+                if (check()) {
+                    addResult(`✅ ${name} wallet detected`, 'success');
+                    foundWallets++;
+                } else {
+                    addResult(`❌ ${name} wallet not found`, 'error');
+                }
+            }
+            
+            if (foundWallets === 0) {
+                addResult('🚨 No wallets found! Please install Phantom wallet.', 'error');
+            } else {
+                addResult(`🎉 Found ${foundWallets} wallet(s)`, 'success');
+            }
+        }
+
+        async function testPhantom() {
+            const btn = document.getElementById('phantomBtn');
+            btn.disabled = true;
+            btn.textContent = 'Connecting...';
+            
+            try {
+                addResult('🔗 Testing Phantom wallet...', 'info');
+                
+                if (!window.solana || !window.solana.isPhantom) {
+                    throw new Error('Phantom wallet not detected');
+                }
+                
+                addResult('✅ Phantom wallet detected', 'success');
+                
+                const response = await window.solana.connect();
+                addResult(`✅ Connected! Address: ${response.publicKey.toString()}`, 'success');
+                
+                // Test signing
+                const message = new TextEncoder().encode('Test message');
+                const signature = await window.solana.signMessage(message, 'utf8');
+                addResult('✅ Message signing works', 'success');
+                
+            } catch (error) {
+                addResult(`❌ Phantom test failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '2. Test Phantom';
+            }
+        }
+
+        async function testSolflare() {
+            const btn = document.getElementById('solflareBtn');
+            btn.disabled = true;
+            btn.textContent = 'Connecting...';
+            
+            try {
+                addResult('🔗 Testing Solflare wallet...', 'info');
+                
+                if (!window.solflare && !window.solana?.isSolflare) {
+                    throw new Error('Solflare wallet not detected');
+                }
+                
+                addResult('✅ Solflare wallet detected', 'success');
+                
+                const wallet = window.solflare || window.solana;
+                const response = await wallet.connect();
+                addResult(`✅ Connected! Address: ${response.publicKey.toString()}`, 'success');
+                
+            } catch (error) {
+                addResult(`❌ Solflare test failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '3. Test Solflare';
+            }
+        }
+
+        // Auto-check wallets on load
+        setTimeout(checkWallets, 1000);
+    </script>
+</body>
+</html>
