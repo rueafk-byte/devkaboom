@@ -1549,7 +1549,7 @@
                 <div class="wallet-section">
                     <h3>🔗 Connect Wallet</h3>
                     <div class="wallet-status disconnected" id="walletStatus">Wallet not connected</div>
-                    <button class="connect-wallet-btn" id="connectWalletBtn" onclick="if(window.walletConnection){window.walletConnection.showWalletSelector();}else{alert('Wallet system not ready. Please refresh the page.');}">Connect Wallet</button>
+                    <button class="connect-wallet-btn" id="connectWalletBtn" onclick="showSimpleWalletSelector()">Connect Wallet</button>
                 </div>
                 
                 <div id="startButtonContainer" style="display: none; margin: 0; text-align: center;">
@@ -2610,6 +2610,247 @@
             }
             
             console.log('🔄 Navigated to recharge page successfully');
+        }
+        
+        // Simple wallet selector function
+        function showSimpleWalletSelector() {
+            console.log('🎯 Showing simple wallet selector...');
+            
+            // Remove any existing modal
+            const existingModal = document.getElementById('simpleWalletModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            const modalHTML = `
+                <div id="simpleWalletModal" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background: rgba(0, 0, 0, 0.8);
+                    z-index: 999999;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                ">
+                    <div style="
+                        background: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                        max-width: 400px;
+                        width: 90%;
+                        text-align: center;
+                    ">
+                        <h2 style="color: #333; margin-bottom: 10px;">🔗 Choose Your Wallet</h2>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 20px; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+                            🔐 <strong>Security Authentication:</strong> You will be asked to sign a message to verify wallet ownership.
+                        </p>
+                        
+                        <div onclick="connectPhantomSimple()" style="
+                            padding: 15px; margin: 10px 0; background: #f0f8ff;
+                            border: 2px solid #4682B4; border-radius: 10px;
+                            cursor: pointer; display: flex; align-items: center;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='#e0f0ff'" onmouseout="this.style.background='#f0f8ff'">
+                            <img src="Sprites/emojis/phantom.png" alt="Phantom" style="width: 40px; height: 40px; margin-right: 15px;">
+                            <div style="flex: 1; text-align: left;">
+                                <div style="font-weight: bold; color: #4682B4; font-size: 18px;">Phantom</div>
+                                <div style="color: #666; font-size: 14px;">Most popular Solana wallet</div>
+                            </div>
+                        </div>
+                        
+                        <div onclick="connectSolflareSimple()" style="
+                            padding: 15px; margin: 10px 0; background: #f0f8ff;
+                            border: 2px solid #4682B4; border-radius: 10px;
+                            cursor: pointer; display: flex; align-items: center;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='#e0f0ff'" onmouseout="this.style.background='#f0f8ff'">
+                            <img src="Sprites/emojis/solflare.png" alt="Solflare" style="width: 40px; height: 40px; margin-right: 15px;">
+                            <div style="flex: 1; text-align: left;">
+                                <div style="font-weight: bold; color: #4682B4; font-size: 18px;">Solflare</div>
+                                <div style="color: #666; font-size: 14px;">Professional Solana wallet</div>
+                            </div>
+                        </div>
+                        
+                        <div onclick="connectBackpackSimple()" style="
+                            padding: 15px; margin: 10px 0; background: #f0f8ff;
+                            border: 2px solid #4682B4; border-radius: 10px;
+                            cursor: pointer; display: flex; align-items: center;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='#e0f0ff'" onmouseout="this.style.background='#f0f8ff'">
+                            <img src="Sprites/emojis/backpack.png" alt="Backpack" style="width: 40px; height: 40px; margin-right: 15px;">
+                            <div style="flex: 1; text-align: left;">
+                                <div style="font-weight: bold; color: #4682B4; font-size: 18px;">Backpack</div>
+                                <div style="color: #666; font-size: 14px;">Developer-friendly wallet</div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="document.getElementById('simpleWalletModal').remove();" style="
+                            margin-top: 20px; padding: 10px 20px;
+                            background: #dc3545; color: white;
+                            border: none; border-radius: 5px; cursor: pointer;
+                            font-size: 14px;
+                        " onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            console.log('✅ Simple wallet selector modal created');
+        }
+        
+        // Simple wallet connection functions
+        async function connectPhantomSimple() {
+            console.log('👻 Connecting to Phantom...');
+            try {
+                if (!window.solana || !window.solana.isPhantom) {
+                    alert('Phantom wallet not found! Please install Phantom extension.');
+                    return;
+                }
+                
+                // Connect to wallet
+                const response = await window.solana.connect({ onlyIfTrusted: false });
+                if (!response || !response.publicKey) {
+                    throw new Error('Failed to connect to Phantom wallet');
+                }
+                
+                console.log('✅ Phantom connected:', response.publicKey.toString());
+                
+                // Request signature
+                const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${response.publicKey.toString()}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
+                const encodedMessage = new TextEncoder().encode(message);
+                const signatureResponse = await window.solana.signMessage(encodedMessage, 'utf8');
+                
+                if (!signatureResponse || !signatureResponse.signature) {
+                    throw new Error('Signature verification failed');
+                }
+                
+                console.log('✅ Phantom signature verified!');
+                
+                // Update UI
+                updateWalletUI(response.publicKey.toString(), 'Phantom');
+                document.getElementById('simpleWalletModal').remove();
+                
+                alert('Phantom wallet connected successfully!');
+                
+            } catch (error) {
+                console.error('❌ Phantom connection failed:', error);
+                if (error.code === 4001) {
+                    alert('Phantom connection was cancelled by user.');
+                } else {
+                    alert('Phantom connection failed: ' + error.message);
+                }
+            }
+        }
+        
+        async function connectSolflareSimple() {
+            console.log('🌅 Connecting to Solflare...');
+            try {
+                if (!window.solflare) {
+                    alert('Solflare wallet not found! Please install Solflare extension.');
+                    return;
+                }
+                
+                // Connect to wallet
+                const response = await window.solflare.connect({ onlyIfTrusted: false });
+                if (!response || !response.publicKey) {
+                    throw new Error('Failed to connect to Solflare wallet');
+                }
+                
+                console.log('✅ Solflare connected:', response.publicKey.toString());
+                
+                // Request signature
+                const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${response.publicKey.toString()}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
+                const encodedMessage = new TextEncoder().encode(message);
+                const signatureResponse = await window.solflare.signMessage(encodedMessage, 'utf8');
+                
+                if (!signatureResponse || !signatureResponse.signature) {
+                    throw new Error('Signature verification failed');
+                }
+                
+                console.log('✅ Solflare signature verified!');
+                
+                // Update UI
+                updateWalletUI(response.publicKey.toString(), 'Solflare');
+                document.getElementById('simpleWalletModal').remove();
+                
+                alert('Solflare wallet connected successfully!');
+                
+            } catch (error) {
+                console.error('❌ Solflare connection failed:', error);
+                if (error.code === 4001) {
+                    alert('Solflare connection was cancelled by user.');
+                } else {
+                    alert('Solflare connection failed: ' + error.message);
+                }
+            }
+        }
+        
+        async function connectBackpackSimple() {
+            console.log('🎒 Connecting to Backpack...');
+            try {
+                if (!window.backpack) {
+                    alert('Backpack wallet not found! Please install Backpack extension.');
+                    return;
+                }
+                
+                // Connect to wallet
+                const response = await window.backpack.connect({ onlyIfTrusted: false });
+                if (!response || !response.publicKey) {
+                    throw new Error('Failed to connect to Backpack wallet');
+                }
+                
+                console.log('✅ Backpack connected:', response.publicKey.toString());
+                
+                // Request signature
+                const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${response.publicKey.toString()}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
+                const encodedMessage = new TextEncoder().encode(message);
+                const signatureResponse = await window.backpack.signMessage(encodedMessage, 'utf8');
+                
+                if (!signatureResponse || !signatureResponse.signature) {
+                    throw new Error('Signature verification failed');
+                }
+                
+                console.log('✅ Backpack signature verified!');
+                
+                // Update UI
+                updateWalletUI(response.publicKey.toString(), 'Backpack');
+                document.getElementById('simpleWalletModal').remove();
+                
+                alert('Backpack wallet connected successfully!');
+                
+            } catch (error) {
+                console.error('❌ Backpack connection failed:', error);
+                if (error.code === 4001) {
+                    alert('Backpack connection was cancelled by user.');
+                } else {
+                    alert('Backpack connection failed: ' + error.message);
+                }
+            }
+        }
+        
+        function updateWalletUI(publicKey, walletName) {
+            // Update wallet status
+            const walletStatus = document.getElementById('walletStatus');
+            if (walletStatus) {
+                walletStatus.textContent = `Connected: ${publicKey.substring(0, 8)}... (${walletName})`;
+                walletStatus.className = 'wallet-status connected';
+            }
+            
+            // Hide connect button
+            const connectBtn = document.getElementById('connectWalletBtn');
+            if (connectBtn) {
+                connectBtn.style.display = 'none';
+            }
+            
+            // Show start button container
+            const startButtonContainer = document.getElementById('startButtonContainer');
+            if (startButtonContainer) {
+                startButtonContainer.style.display = 'block';
+            }
         }
         
         // Initialize game over buttons when DOM is loaded
