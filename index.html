@@ -1549,7 +1549,40 @@
                 <div class="wallet-section">
                     <h3>🔗 Connect Wallet</h3>
                     <div class="wallet-status disconnected" id="walletStatus">Wallet not connected</div>
-                    <button class="connect-wallet-btn" id="connectWalletBtn" onclick="showSimpleWalletSelector()">Connect Wallet</button>
+                    <button class="connect-wallet-btn" id="connectWalletBtn" onclick="
+                        console.log('Button clicked!');
+                        const modal = document.createElement('div');
+                        modal.id = 'walletModal';
+                        modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);z-index:999999;display:flex;justify-content:center;align-items:center;';
+                        modal.innerHTML = `
+                            <div style='background:white;padding:30px;border-radius:15px;max-width:400px;width:90%;text-align:center;'>
+                                <h2>Choose Your Wallet</h2>
+                                <div onclick='connectWallet(\"phantom\")' style='padding:15px;margin:10px 0;background:#f0f8ff;border:2px solid #4682B4;border-radius:10px;cursor:pointer;display:flex;align-items:center;'>
+                                    <img src='Sprites/emojis/phantom.png' style='width:40px;height:40px;margin-right:15px;'>
+                                    <div style='text-align:left;'>
+                                        <div style='font-weight:bold;color:#4682B4;font-size:18px;'>Phantom</div>
+                                        <div style='color:#666;font-size:14px;'>Most popular Solana wallet</div>
+                                    </div>
+                                </div>
+                                <div onclick='connectWallet(\"solflare\")' style='padding:15px;margin:10px 0;background:#f0f8ff;border:2px solid #4682B4;border-radius:10px;cursor:pointer;display:flex;align-items:center;'>
+                                    <img src='Sprites/emojis/solflare.png' style='width:40px;height:40px;margin-right:15px;'>
+                                    <div style='text-align:left;'>
+                                        <div style='font-weight:bold;color:#4682B4;font-size:18px;'>Solflare</div>
+                                        <div style='color:#666;font-size:14px;'>Professional Solana wallet</div>
+                                    </div>
+                                </div>
+                                <div onclick='connectWallet(\"backpack\")' style='padding:15px;margin:10px 0;background:#f0f8ff;border:2px solid #4682B4;border-radius:10px;cursor:pointer;display:flex;align-items:center;'>
+                                    <img src='Sprites/emojis/backpack.png' style='width:40px;height:40px;margin-right:15px;'>
+                                    <div style='text-align:left;'>
+                                        <div style='font-weight:bold;color:#4682B4;font-size:18px;'>Backpack</div>
+                                        <div style='color:#666;font-size:14px;'>Developer-friendly wallet</div>
+                                    </div>
+                                </div>
+                                <button onclick='document.getElementById(\"walletModal\").remove()' style='margin-top:20px;padding:10px 20px;background:#dc3545;color:white;border:none;border-radius:5px;cursor:pointer;'>Cancel</button>
+                            </div>
+                        `;
+                        document.body.appendChild(modal);
+                    ">Connect Wallet</button>
                 </div>
                 
                 <div id="startButtonContainer" style="display: none; margin: 0; text-align: center;">
@@ -2847,6 +2880,73 @@
             }
             
             // Show start button container
+            const startButtonContainer = document.getElementById('startButtonContainer');
+            if (startButtonContainer) {
+                startButtonContainer.style.display = 'block';
+            }
+        }
+        
+        // Simple wallet connection function
+        function connectWallet(walletType) {
+            console.log('Connecting to', walletType);
+            
+            if (walletType === 'phantom') {
+                if (window.solana && window.solana.isPhantom) {
+                    window.solana.connect().then(response => {
+                        console.log('Phantom connected:', response.publicKey.toString());
+                        updateUI(response.publicKey.toString(), 'Phantom');
+                        document.getElementById('walletModal').remove();
+                        alert('Phantom connected successfully!');
+                    }).catch(error => {
+                        console.error('Phantom error:', error);
+                        alert('Phantom connection failed: ' + error.message);
+                    });
+                } else {
+                    alert('Phantom wallet not found!');
+                }
+            } else if (walletType === 'solflare') {
+                if (window.solflare) {
+                    window.solflare.connect().then(response => {
+                        console.log('Solflare connected:', response.publicKey.toString());
+                        updateUI(response.publicKey.toString(), 'Solflare');
+                        document.getElementById('walletModal').remove();
+                        alert('Solflare connected successfully!');
+                    }).catch(error => {
+                        console.error('Solflare error:', error);
+                        alert('Solflare connection failed: ' + error.message);
+                    });
+                } else {
+                    alert('Solflare wallet not found!');
+                }
+            } else if (walletType === 'backpack') {
+                if (window.backpack) {
+                    window.backpack.connect().then(response => {
+                        console.log('Backpack connected:', response.publicKey.toString());
+                        updateUI(response.publicKey.toString(), 'Backpack');
+                        document.getElementById('walletModal').remove();
+                        alert('Backpack connected successfully!');
+                    }).catch(error => {
+                        console.error('Backpack error:', error);
+                        alert('Backpack connection failed: ' + error.message);
+                    });
+                } else {
+                    alert('Backpack wallet not found!');
+                }
+            }
+        }
+        
+        function updateUI(publicKey, walletName) {
+            const walletStatus = document.getElementById('walletStatus');
+            if (walletStatus) {
+                walletStatus.textContent = `Connected: ${publicKey.substring(0, 8)}... (${walletName})`;
+                walletStatus.className = 'wallet-status connected';
+            }
+            
+            const connectBtn = document.getElementById('connectWalletBtn');
+            if (connectBtn) {
+                connectBtn.style.display = 'none';
+            }
+            
             const startButtonContainer = document.getElementById('startButtonContainer');
             if (startButtonContainer) {
                 startButtonContainer.style.display = 'block';
