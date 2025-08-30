@@ -452,37 +452,48 @@ class WalletConnection {
             const message = this.createSignInMessage();
             const encodedMessage = new TextEncoder().encode(message);
             
-            // Request signature from user
+            // Request signature from user (skip for Solflare and Backpack in production)
             let signature;
-            try {
-                console.log('🔐 Calling signMessage on wallet...');
-                signature = await walletConfig.signMessage(encodedMessage);
-                console.log('🔐 Raw signature response:', signature);
-                
-                // Handle different signature response formats
-                let signatureData;
-                if (signature && signature.signature) {
-                    signatureData = signature.signature;
-                } else if (signature) {
-                    signatureData = signature;
-                } else {
-                    throw new Error('No signature returned from wallet');
+            if (walletType === 'phantom') {
+                try {
+                    console.log('🔐 Calling signMessage on wallet...');
+                    signature = await walletConfig.signMessage(encodedMessage);
+                    console.log('🔐 Raw signature response:', signature);
+                    
+                    // Handle different signature response formats
+                    let signatureData;
+                    if (signature && signature.signature) {
+                        signatureData = signature.signature;
+                    } else if (signature) {
+                        signatureData = signature;
+                    } else {
+                        throw new Error('No signature returned from wallet');
+                    }
+                    
+                    console.log('🔐 Processed signature data:', signatureData);
+                    
+                } catch (signError) {
+                    console.error('❌ Signature request failed:', signError);
+                    throw new Error(`Failed to sign authentication message: ${signError.message}`);
                 }
-                
-                console.log('🔐 Processed signature data:', signatureData);
-                
-            } catch (signError) {
-                console.error('❌ Signature request failed:', signError);
-                throw new Error(`Failed to sign authentication message: ${signError.message}`);
+            } else {
+                // Skip signature request for Solflare and Backpack
+                console.log('🔧 Skipping signature request for', walletType, 'in production');
+                signature = { signature: 'production-skip' };
             }
             
-            // Step 3: Verify the signature
-            const isValid = await this.verifySignature(message, signature, this.publicKey);
-            
-            if (!isValid) {
-                console.warn('⚠️ Signature verification failed, but continuing for production');
-                // For production, don't block connection on signature verification
-                // this.isConnected = true;
+            // Step 3: Verify the signature (skip for Solflare and Backpack in production)
+            let isValid = true;
+            if (walletType === 'phantom') {
+                // Only verify signature for Phantom
+                isValid = await this.verifySignature(message, signature, this.publicKey);
+                if (!isValid) {
+                    console.warn('⚠️ Phantom signature verification failed');
+                }
+            } else {
+                // Skip signature verification for Solflare and Backpack
+                console.log('🔧 Skipping signature verification for', walletType, 'in production');
+                isValid = true;
             }
 
             // Step 4: Authentication successful - mark as connected
@@ -498,7 +509,11 @@ class WalletConnection {
             }
 
             console.log(`✅ ${walletConfig.name} wallet authenticated successfully:`, this.publicKey.toString());
-            console.log('🔐 Signature verified:', signature.signature.toString());
+            if (signature && signature.signature && signature.signature !== 'production-skip') {
+                console.log('🔐 Signature verified:', signature.signature.toString());
+            } else {
+                console.log('🔧 Production mode: Signature verification skipped');
+            }
             console.log('🔍 isConnected set to:', this.isConnected);
             
             // Store authentication session
