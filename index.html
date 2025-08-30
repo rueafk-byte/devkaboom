@@ -1549,7 +1549,7 @@
                 <div class="wallet-section">
                     <h3>🔗 Connect Wallet</h3>
                     <div class="wallet-status disconnected" id="walletStatus">Wallet not connected</div>
-                    <button class="connect-wallet-btn" id="connectWalletBtn">Connect Wallet</button>
+                    <button class="connect-wallet-btn" id="connectWalletBtn" onclick="if(window.walletConnection){window.walletConnection.showWalletSelector();}else{alert('Wallet system not ready. Please refresh the page.');}">Connect Wallet</button>
                 </div>
                 
                 <div id="startButtonContainer" style="display: none; margin: 0; text-align: center;">
