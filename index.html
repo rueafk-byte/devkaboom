@@ -1773,12 +1773,10 @@
     
     <!-- Web3 Scripts -->
     <script src="web3/wallet-connection.js"></script>
-    <script src="web3/wallet-connection-production-fix.js"></script>
     <script src="web3/reward-system.js"></script>
     <script src="web3/player-registry-client.js"></script>
     <script src="web3/player-data-manager.js"></script>
     <script src="web3/recharge-manager.js"></script>
-    <script src="web3/wallet-fix.js"></script>
     
     <script>
         // Immediate debugging
@@ -1791,8 +1789,7 @@
         }
     </script>
     
-    <script src="game.js"></script>
-    <script src="wallet-connection-fix.js"></script>
+    <script src="game-sprites.js"></script>
     
     <!-- Direct Sound Button Test -->
 
@@ -2085,101 +2082,7 @@
                                 }
                             };
                             
-                            window.connectSolflare = async function() {
-                                console.log('🌅 Attempting Solflare connection...');
-                                console.log('🔍 Debug - window.solflare:', window.solflare);
-                                console.log('🔍 Debug - window.solana:', window.solana);
-                                console.log('🔍 Debug - window.solana.isSolflare:', window.solana ? window.solana.isSolflare : 'N/A');
-                                console.log('🔍 Debug - window.solana.isPhantom:', window.solana ? window.solana.isPhantom : 'N/A');
-                                
-                                try {
-                                    let response;
-                                    let walletObj;
-                                    let connectionMethod = 'none';
-                                    
-                                    // Method 1: Try dedicated Solflare object first
-                                    if (window.solflare && typeof window.solflare.connect === 'function') {
-                                        console.log('✅ Method 1: Using window.solflare...');
-                                        connectionMethod = 'window.solflare';
-                                        
-                                        // Force fresh connection - disconnect first if connected
-                                        if (window.solflare.isConnected) {
-                                            console.log('🔄 Disconnecting existing Solflare connection for fresh auth...');
-                                            try {
-                                                await window.solflare.disconnect();
-                                            } catch (e) {
-                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
-                                            }
-                                        }
-                                        
-                                        // Always request fresh connection with user approval
-                                        response = await window.solflare.connect({ onlyIfTrusted: false });
-                                        walletObj = window.solflare;
-                                    }
-                                    // Method 2: Try window.solana if it's Solflare and NOT Phantom
-                                    else if (window.solana && window.solana.isSolflare && !window.solana.isPhantom) {
-                                        console.log('✅ Method 2: Using window.solana (Solflare-only)...');
-                                        connectionMethod = 'window.solana (Solflare-only)';
-                                        
-                                        // Force fresh connection
-                                        if (window.solana.isConnected) {
-                                            console.log('🔄 Disconnecting existing Solana (Solflare) connection for fresh auth...');
-                                            try {
-                                                await window.solana.disconnect();
-                                            } catch (e) {
-                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
-                                            }
-                                        }
-                                        
-                                        // Always request fresh connection
-                                        response = await window.solana.connect({ onlyIfTrusted: false });
-                                        walletObj = window.solana;
-                                    }
-                                    // Method 3: Check for other Solflare injection patterns
-                                    else if (window.solflareWallet && typeof window.solflareWallet.connect === 'function') {
-                                        console.log('✅ Method 3: Using window.solflareWallet...');
-                                        connectionMethod = 'window.solflareWallet';
-                                        
-                                        // Force fresh connection
-                                        if (window.solflareWallet.isConnected) {
-                                            try {
-                                                await window.solflareWallet.disconnect();
-                                            } catch (e) {
-                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
-                                            }
-                                        }
-                                        
-                                        response = await window.solflareWallet.connect({ onlyIfTrusted: false });
-                                        walletObj = window.solflareWallet;
-                                    }
-                                    // Method 4: Force connection even if shared with Phantom
-                                    else if (window.solana && window.solana.isSolflare) {
-                                        console.log('⚠️ Method 4: Using window.solana (shared with Phantom)...');
-                                        connectionMethod = 'window.solana (shared)';
-                                        
-                                        // Show warning to user
-                                        const proceed = confirm('Both Phantom and Solflare are detected. This may connect to Phantom instead. Continue?');
-                                        if (!proceed) {
-                                            console.log('❌ User cancelled shared wallet connection');
-                                            return;
-                                        }
-                                        
-                                        // Force fresh connection
-                                        if (window.solana.isConnected) {
-                                            try {
-                                                await window.solana.disconnect();
-                                            } catch (e) {
-                                                console.log('⚠️ Could not disconnect existing connection:', e.message);
-                                            }
-                                        }
-                                        
-                                        response = await window.solana.connect({ onlyIfTrusted: false });
-                                        walletObj = window.solana;
-                                    }
-                                    else {
-                                        console.error('❌ No Solflare wallet found!');
-                                        console.log('🔍 Available objects:', {
-                                            'window.solflare': !!window.solflare,
+                            // Removed conflicting wallet connection functions - using main wallet-connection.js instead
                                             'window.solflareWallet': !!window.solflareWallet,
                                             'window.solana': !!window.solana,
                                             'window.solana.isSolflare': window.solana ? window.solana.isSolflare : false,
@@ -2310,97 +2213,7 @@
                                 }
                             };
                             
-                            window.connectBackpack = async function() {
-                                console.log('🎒 Attempting Backpack connection with signature verification...');
-                                try {
-                                    if (window.backpack && window.backpack.connect) {
-                                        // Step 1: Connect to wallet
-                                        console.log('🔗 Requesting wallet connection...');
-                                        const response = await window.backpack.connect({ 
-                                            onlyIfTrusted: false
-                                        });
-                                        
-                                        if (!response || !response.publicKey) {
-                                            throw new Error('Failed to connect to Backpack wallet');
-                                        }
-                                        
-                                        console.log('✅ Backpack connected:', response.publicKey.toString());
-                                        
-                                        // Step 2: Request signature for authentication
-                                        console.log('🔐 Requesting signature for authentication...');
-                                        const message = `Please sign this message to authenticate with Pirate Bomb Game.\n\nWallet: ${response.publicKey.toString()}\nTime: ${new Date().toISOString()}\nNonce: ${Math.random().toString(36).substring(7)}`;
-                                        const encodedMessage = new TextEncoder().encode(message);
-                                        
-                                        let signatureResponse;
-                                        try {
-                                            if (window.backpack.signMessage) {
-                                                signatureResponse = await window.backpack.signMessage(encodedMessage, 'utf8');
-                                            } else {
-                                                throw new Error('Backpack wallet does not support message signing');
-                                            }
-                                            
-                                            if (!signatureResponse || !signatureResponse.signature) {
-                                                throw new Error('Signature verification failed');
-                                            }
-                                            
-                                            console.log('✅ Backpack signature verified successfully!');
-                                            console.log('🔑 Signature:', signatureResponse.signature);
-                                            
-                                        } catch (signError) {
-                                            console.error('❌ Signature request failed:', signError);
-                                            if (signError.code === 4001 || signError.message.includes('User rejected')) {
-                                                alert('Signature request was cancelled by user.');
-                                                return;
-                                            } else {
-                                                alert('Signature verification failed. Authentication required for security.\n\nError: ' + signError.message);
-                                                return;
-                                            }
-                                        }
-                                        
-                                        // Update the wallet connection system
-                                        if (window.walletConnection) {
-                                            window.walletConnection.isConnected = true;
-                                            window.walletConnection.publicKey = response.publicKey;
-                                            window.walletConnection.selectedWallet = 'backpack';
-                                            window.walletConnection.signature = signatureResponse.signature;
-                                            if (typeof window.walletConnection.updateConnectionUI === 'function') {
-                                                window.walletConnection.updateConnectionUI();
-                                            }
-                                        }
-                                        
-                                        // Update UI elements
-                                        const walletStatus = document.getElementById('walletStatus');
-                                        const connectBtn = document.getElementById('connectWalletBtn');
-                                        const startButtonContainer = document.getElementById('startButtonContainer');
-                                        const startButton = document.getElementById('startButton');
-                                        
-                                        if (walletStatus) {
-                                            walletStatus.textContent = `Authenticated: ${response.publicKey.toString().substring(0, 8)}... (Backpack)`;
-                                            walletStatus.className = 'wallet-status connected';
-                                        }
-                                        if (connectBtn) connectBtn.style.display = 'none';
-                                        if (startButtonContainer) startButtonContainer.style.display = 'block';
-                                        if (startButton) {
-                                            startButton.disabled = false;
-                                            startButton.style.opacity = '1';
-                                            startButton.style.cursor = 'pointer';
-                                        }
-                                        
-                                        alert('Backpack wallet authenticated successfully with signature!');
-                                    } else {
-                                        alert('Backpack wallet not found! Please install Backpack extension.');
-                                    }
-                                } catch (error) {
-                                    console.error('❌ Backpack authentication failed:', error);
-                                    if (error.code === 4001 || error.message.includes('User rejected')) {
-                                        alert('Backpack authentication was cancelled by user.');
-                                    } else if (error.message.includes('signMessage')) {
-                                        alert('Signature request failed. Please try again and approve the signature request.');
-                                    } else {
-                                        alert('Backpack authentication failed: ' + error.message);
-                                    }
-                                }
-                            };
+                            // Removed conflicting Backpack connection function - using main wallet-connection.js instead
                             
                             // Create and show modal
                             const modalHTML = `
@@ -2430,7 +2243,7 @@
                                             🔐 <strong>Security Authentication:</strong> You will be asked to sign a message to verify wallet ownership.
                                         </p>
                                         
-                                        <div onclick="window.connectPhantom(); document.getElementById('walletSelectorModal').remove();" style="
+                                        <div onclick="window.walletConnection.connectWallet('phantom'); document.getElementById('walletSelectorModal').remove();" style="
                                             padding: 15px; margin: 10px 0; background: #f0f8ff;
                                             border: 2px solid #4682B4; border-radius: 10px;
                                             cursor: pointer; display: flex; align-items: center;
@@ -2443,7 +2256,7 @@
                                             </div>
                                         </div>
                                         
-                                        <div onclick="window.connectSolflare(); document.getElementById('walletSelectorModal').remove();" style="
+                                        <div onclick="window.walletConnection.connectWallet('solflare'); document.getElementById('walletSelectorModal').remove();" style="
                                             padding: 15px; margin: 10px 0; background: #f0f8ff;
                                             border: 2px solid #4682B4; border-radius: 10px;
                                             cursor: pointer; display: flex; align-items: center;
@@ -2456,7 +2269,7 @@
                                             </div>
                                         </div>
                                         
-                                        <div onclick="window.connectBackpack(); document.getElementById('walletSelectorModal').remove();" style="
+                                        <div onclick="window.walletConnection.connectWallet('backpack'); document.getElementById('walletSelectorModal').remove();" style="
                                             padding: 15px; margin: 10px 0; background: #f0f8ff;
                                             border: 2px solid #4682B4; border-radius: 10px;
                                             cursor: pointer; display: flex; align-items: center;
